@@ -53,7 +53,7 @@ Hardware Quirks & Uncontrollable Artifacts: Because this project uses Nuked OPM,
 Swapping the Core: If you prefer a smoother, VST-like sound, the project's modular design allows you to replace the core. Simply refer to the encapsulation logic in core.py and implement the ChipCore abstract class to wrap another emulator (like fmgen), then pass it to driver.py.
 
 Credits & Sound Bank
-Thanks to Wohlstand for his guidance on WOPN and core comparison.
+Thanks to Wohlstand for his guidance on WOPN.
 Sound Bank (OPM Presets): The .opm patches provided in this repo are dynamically extracted from the reverse-engineered NECOPN.DRV.
 Check out the extraction project here: https://github.com/EriczjrWinter/necopn-drv-reverse
 
