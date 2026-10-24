@@ -6,22 +6,10 @@ kind: 'on' | 'off' | 'cc' | 'prog' | 'bend' | 'tempo' | 'meta'
 
 修复记录
 --------
-早期版本在元事件分支 `continue` 时保留了 `status = 0xFF`，导致紧随其后的
-**运行状态（running status）音符事件**被误读为元事件，并按错误的长度跳过
-一大段数据 —— 症状是某些段落整段音符丢失、NOTE_OFF_MISS 密集出现。
-
-正确处理：running status 只由 0x80-0xEF 的状态字节更新，元事件 / 系统
-事件（0xF0-0xFF）不影响它。本文件按下述规则实现：
-
-    b = 下一个字节
-    if b >= 0x80:                # 显式状态字节
-        if b < 0xF0:             # 0x80-0xEF 是 MIDI 通道消息，更新 running status
-            running_status = b
-        status = b
-        读 b
-    else:                        # 运行状态
-        status = running_status  # 使用上一次的通道状态
-        不读字节
+1. 早期版本在元事件分支 `continue` 时保留了 `status = 0xFF`，导致紧随其后的
+   running status 音符事件被误读。此版本已修正。
+2. 兼容 CSWare 社等老GAL厂商内提取的非标准软件生成的 `FF 51 04` (非标准长度 Tempo 事件)。
+   这会导致内置 4 字节长度，但只有前 3 字节是真实数据，第 4 字节为冗余。
 """
 from __future__ import annotations
 
@@ -54,11 +42,7 @@ def _read_vlq(buf: bytes, i: int, end: int) -> Tuple[int, int]:
 
 
 def parse_smf(data: bytes, debug: bool = False) -> Tuple[List[Event], int, int]:
-    """返回 (事件表, 每四分音符 tick 数, 曲长秒数)。
-
-    debug=True 时打印每个 track 的解析摘要（事件计数、末端字节），
-    便于诊断"某段音符整段丢失"之类的问题。
-    """
+    """返回 (事件表, 每四分音符 tick 数, 曲长秒数)。"""
     if data[:4] != b"MThd":
         raise ValueError("不是 SMF 文件")
     hdr_len, fmt, ntrk, division = struct.unpack_from(">IHHH", data, 4)
@@ -70,8 +54,8 @@ def parse_smf(data: bytes, debug: bool = False) -> Tuple[List[Event], int, int]:
         print(f"[SMF] format={fmt} ntrk={ntrk} division={tpq} file={len(data)}B")
 
     pos = 8 + hdr_len
-    tempo_map: List[Tuple[int, int]] = []                    # (tick, usec_per_quarter)
-    raw_events: List[Tuple[int, int, int, int, int]] = []    # (tick, kind, ch, d1, d2)
+    tempo_map: List[Tuple[int, int]] = []
+    raw_events: List[Tuple[int, int, int, int, int]] = []
 
     for track_i in range(ntrk):
         if pos + 8 > len(data) or data[pos:pos + 4] != b"MTrk":
@@ -100,11 +84,11 @@ def parse_smf(data: bytes, debug: bool = False) -> Tuple[List[Event], int, int]:
             # ---- 状态字节 vs 运行状态 ----
             if b & 0x80:
                 if b < 0xF0:
-                    running_status = b       # 只在通道消息时更新
+                    running_status = b
                 status = b
                 i += 1
             else:
-                status = running_status      # 运行状态：不读字节
+                status = running_status
                 if status == 0:
                     raise ValueError(
                         f"track {track_i} @ {i:#x}: 无 running status 时收到数据字节 {b:#x}")
@@ -118,13 +102,15 @@ def parse_smf(data: bytes, debug: bool = False) -> Tuple[List[Event], int, int]:
                 ln, i = _read_vlq(data, i, end)
                 if i + ln > end:
                     raise ValueError(f"track {track_i}: 元事件 payload 越界")
-                payload = data[i:i + ln]
+                
+                # 【核心修复区】：兼容 CSWare 的 FF 51 04 错误
+                if meta == 0x51:
+                    if ln >= 3:
+                        payload = data[i:i + 3]
+                        tempo_map.append((tick, (payload[0] << 16) | (payload[1] << 8) | payload[2]))
+                # 统一步进跳过整个元事件长度（包括脏数据的 4 字节）
                 i += ln
                 n_meta += 1
-                if meta == 0x51 and ln == 3:
-                    tempo_map.append(
-                        (tick, (payload[0] << 16) | (payload[1] << 8) | payload[2]))
-                # 元事件不改变 running_status
                 continue
 
             # ---- 系统专用消息 / SysEx ----
@@ -135,11 +121,11 @@ def parse_smf(data: bytes, debug: bool = False) -> Tuple[List[Event], int, int]:
                 i += ln
                 continue
 
-            # ---- 系统实时消息（0xF8-0xFE，0 数据字节，SMF 中罕见）----
+            # ---- 系统实时消息 ----
             if status >= 0xF8:
                 continue
 
-            # ---- 系统公共消息（0xF1-0xF6，SMF 中极罕见）----
+            # ---- 系统公共消息 ----
             if status == 0xF1 or status == 0xF3:
                 i += 1
                 continue
@@ -153,7 +139,6 @@ def parse_smf(data: bytes, debug: bool = False) -> Tuple[List[Event], int, int]:
             kind = status & 0xF0
             ch = status & 0x0F
             if kind in (0xC0, 0xD0):
-                # 单数据字节
                 if i >= end:
                     raise ValueError(f"track {track_i}: 通道消息 @ {i:#x} 截断")
                 d1 = data[i]
@@ -178,7 +163,6 @@ def parse_smf(data: bytes, debug: bool = False) -> Tuple[List[Event], int, int]:
                     n_cc += 1
                 elif kind == 0xE0:
                     n_bend += 1
-            # kind == 0xA0 (aftertouch) / 0xD0 (channel pressure) 忽略
 
         if debug:
             tail = data[max(0, end - 4):end].hex()
