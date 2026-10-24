@@ -62,6 +62,7 @@ class OpmSystem:
         self.sustain = [False] * 16
         self.ch_vol = [127] * 16
         self.ch_expr = [127] * 16
+        self.ch_brightness = [64] * 16  # 新增：CC74 亮度，默认 64（中心点）
         
         self.serial = 0
         self.time = 0.0
@@ -73,7 +74,7 @@ class OpmSystem:
     def _init_hardware(self):
         for ch in range(self.n_ch):
             self._w(0x08, ch)
-        self._w(0x0F, 0x00) # 关闭噪声
+        self._w(0x0F, 0x00) # 关闭硬件 Noise
 
     def load_bank(self, voices: list[OpmVoice]) -> None:
         self.voices = list(voices)
@@ -103,6 +104,7 @@ class OpmSystem:
         con = v.ch[2] & 7
         carriers = CARRIER_MASK.get(con, (0, 0, 0, 1))
 
+        # 1. 计算载波（Carrier）的音量衰减：受力度、CC7、CC11 影响
         vel = max(0, min(127, velocity))
         vol = self.ch_vol[midi_ch]
         expr = self.ch_expr[midi_ch]
@@ -117,13 +119,21 @@ class OpmSystem:
         else:
             total_db += -20.0 * math.log10((vol * expr) / (127.0 * 127.0))
 
-        atten = int(round(total_db / TL_DB_PER_STEP))
-        atten = max(0, min(127, atten))
+        atten_carrier = int(round(total_db / TL_DB_PER_STEP))
+        atten_carrier = max(0, min(127, atten_carrier))
+
+        # 2. 计算调制器（Modulator）的音量衰减：受 CC74 亮度影响
+        # CC74 越小（变暗），调制器被压得越小声，高频谐波越少
+        bright = self.ch_brightness[midi_ch]  # 0~64
+        # 最大衰减量设为 48（约 36dB），避免完全变成纯正弦波
+        atten_mod = int((64 - bright) * 0.75) 
 
         for i, op in enumerate(v.ops):
             tl = op["tl"] & 0x7F
             if carriers[i]:
-                tl = min(127, tl + atten)
+                tl = min(127, tl + atten_carrier)
+            else:
+                tl = min(127, tl + atten_mod)
             self._w(0x60 + VOPM_OP_REG[i] * 8 + ch, tl)
 
     def _set_pitch(self, ch: int, pitch: float) -> None:
@@ -151,7 +161,6 @@ class OpmSystem:
         return -1
 
     def _allocate(self, midi_ch: int, note: int) -> int:
-        """NECOPN 原版大逃杀算法"""
         # 1. 优先找同 MIDI 通道、空闲的槽
         for i, s in enumerate(self.slots):
             if not s.active and not s.pending_off and s.midi_ch == midi_ch:
@@ -171,7 +180,7 @@ class OpmSystem:
                     found = i
                     break
 
-        # 4. 所有槽都满了（或挂起），开始大逃杀
+        # 4. 所有槽都满了，开始 NECOPN 大逃杀
         if found < 0:
             best_midi = -1
             best_serial = 2**31
@@ -197,7 +206,7 @@ class OpmSystem:
         # 如果抢占的是正在发声的通道，必须先发 Key-Off 截断它
         s = self.slots[found]
         if s.active:
-            self._w(0x08, found) # 发送 Key-off
+            self._w(0x08, found) 
             s.active = False
             
         return found
@@ -219,15 +228,13 @@ class OpmSystem:
         if self._find(midi_ch, note) >= 0:
             return
 
-        # 调用 NECOPN 大逃杀
         ch = self._allocate(midi_ch, note)
         if ch < 0:
-            return # 被拒绝分配
+            return
             
         prog = self.programs[midi_ch] % max(1, len(self.voices))
         v = self.voices[prog]
 
-        # 重载音色
         if self.loaded_program[ch] != prog:
             self._load_voice(ch, v)
             self.loaded_program[ch] = prog
@@ -269,12 +276,22 @@ class OpmSystem:
 
     def control_change(self, midi_ch: int, cc: int, value: int) -> None:
         midi_ch &= 0x0F
+        
+        # --- 音量与表情 ---
         if cc == 0x07:
             self.ch_vol[midi_ch] = value
             self._refresh_channel_tl(midi_ch)
         elif cc == 0x0B:
             self.ch_expr[midi_ch] = value
             self._refresh_channel_tl(midi_ch)
+            
+        # --- CC74 亮度控制 (XG standard) ---
+        elif cc == 0x4A:
+            # CC74 范围 0~127，但 XG 规范里通常只用到 0~64，64 以上视为全亮
+            self.ch_brightness[midi_ch] = min(64, value)
+            self._refresh_channel_tl(midi_ch)
+            
+        # --- 踏板与复位 ---
         elif cc == 0x40:
             if value >= 64:
                 self.sustain[midi_ch] = True
@@ -294,6 +311,7 @@ class OpmSystem:
             self.bend14[midi_ch] = 8192
             self.ch_vol[midi_ch] = 127
             self.ch_expr[midi_ch] = 127
+            self.ch_brightness[midi_ch] = 64
             self.sustain[midi_ch] = False
             for i, s in enumerate(self.slots):
                 if s.midi_ch == midi_ch and s.pending_off:

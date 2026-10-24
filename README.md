@@ -15,6 +15,7 @@ Inspired by the dynamic voice-stealing (note-dropping) mechanism of the classic 
 - **Hardware-Accurate Rendering**: Powered by the C-based Nuked OPM for cycle-accurate YM2151 emulation (64 clocks per sample).
 - **Dynamic Voice Stealing (NECOPN Style)**: Automatically manages the 8 physical channels, ruthlessly cutting off lower-priority tracks when polyphony is exceeded.
 - **Optimized Performance**: Uses pure integer operations (`v >> 1`) for volume scaling, avoiding floating-point bottlenecks and digital clipping.
+- **CC74 Brightness Control**: Implements CC74 (Brightness) based on Wohlstand's approach (libOPNMIDI), dynamically adjusting the Modulator's TL to simulate a low-pass filter effect on the FM timbre.
 - **Custom OPM Patches**: Optimized for dynamic snapshot `.opm` presets extracted from the `NECOPN.DRV`.
 
 ### Requirements
@@ -37,10 +38,10 @@ midi: Path to the input MIDI file.
 
 --clock: Master clock for the OPM chip (default: 3,579,545 Hz).
 
-Disclaimer & Feedback
-This is a lightweight, hobbyist project. Due to the simplified implementation and the immense complexity of various MIDI files, you may experience imperfect synthesis results (e.g., aggressive voice stealing, patch discrepancies) or encounter unknown bugs.
+Disclaimer & Core Replacement
+Hardware Quirks & Uncontrollable Artifacts: Because this project uses Nuked OPM, it simulates the raw digital output of the YM2151 chip without any modern DSP smoothing or built-in LPF (Low-Pass Filter). Therefore, dense MIDI events or high-feedback patches may produce harsh "zipper noise" or high-frequency aliasing. This is a genuine characteristic of the hardware, not a bug.
 
-If you find any issues or have suggestions for improvement, please feel free to submit an Issue. Pull Requests are also highly appreciated!
+Swapping the Core: If you prefer a smoother, VST-like sound, the project's modular design allows you to replace the core. Simply refer to the encapsulation logic in core.py and implement the ChipCore abstract class to wrap another emulator (like fmgen), then pass it to driver.py.
 
 Credits & Sound Bank
 Sound Bank (OPM Presets): The .opm patches provided in this repo are dynamically extracted from the reverse-engineered NECOPN.DRV.

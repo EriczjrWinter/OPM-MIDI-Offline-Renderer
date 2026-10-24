@@ -27,6 +27,7 @@ def render(system: OpmSystem, core, events, total_sec: float,
 
     while frames < total_frames:
         now = frames / sr
+        # 处理 MIDI 事件
         while ei < len(events) and events[ei].t <= now:
             e = events[ei]
             system.time = e.t
@@ -40,11 +41,8 @@ def render(system: OpmSystem, core, events, total_sec: float,
         n = min(chunk_cap, total_frames - frames)
         raw = core.generate(n)
         
+        # 核心原始输出：无滤波，直接降一半音量防止削波，保留最原始的毛刺感！
         samples = struct.unpack("<%dh" % (2 * n), raw)
-        
-        # 【完美音量】你原来的 v >> 3 是除以8（峰值3000）。
-        # 现在我们改成 v >> 1（除以2），峰值会完美落在 12000~16000 之间！
-        # 纯位运算，速度极快，且绝对不会爆音！
         scaled = [v >> 1 for v in samples]
         
         out += struct.pack("<%dh" % (2 * n), *scaled)
