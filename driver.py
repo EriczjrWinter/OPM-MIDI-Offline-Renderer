@@ -5,10 +5,10 @@ from dataclasses import dataclass
 from core import ChipCore
 from voice import OpmVoice
 
-# 文件行顺序 M1,C1,M2,C2 → 物理 slot 0,2,1,3（与 VOPM 的 SendVo 一致）
+# 文件行顺序 M1,C1,M2,C2 → 物理 slot 0,2,1,3
 VOPM_OP_REG = [0, 2, 1, 3]
 
-# 正确的 OPM 硬件音阶表（跳过 3, 7, 11）
+# 正确的 OPM 硬件音阶表
 KTBL = [1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 15]
 
 # 修正后的载波表（对应 ops 顺序 M1, C1, M2, C2）
@@ -24,6 +24,19 @@ CARRIER_MASK = {
 }
 
 TL_DB_PER_STEP = 0.75
+
+# 硬编码的 FM 硬件鼓音色 (GM 映射)
+# 格式: (KC, FL_CON, MUL_DT1, TL, AR_KS, DR, SR_DT2, SL_RR, 是否开启噪声, 噪声频率)
+FM_DRUMS = {
+    35: (0x10, 0x3D, 0x01, 0x00, 0x1F, 0x10, 0x10, 0x1F, False, 0),  # Acoustic Bass Drum
+    36: (0x18, 0x3D, 0x01, 0x00, 0x1F, 0x10, 0x10, 0x1F, False, 0),  # Bass Drum 1
+    38: (0x30, 0x1E, 0x05, 0x08, 0x1F, 0x12, 0x0F, 0x1F, True, 0x10), # Acoustic Snare
+    40: (0x38, 0x1E, 0x05, 0x06, 0x1F, 0x12, 0x0F, 0x1F, True, 0x14), # Electric Snare
+    42: (0x40, 0x1E, 0x08, 0x0A, 0x1F, 0x1F, 0x1F, 0x1F, True, 0x1F), # Closed Hi-Hat
+    46: (0x40, 0x1E, 0x08, 0x08, 0x1F, 0x1F, 0x1F, 0x1F, True, 0x1F), # Open Hi-Hat
+    49: (0x40, 0x1E, 0x08, 0x0C, 0x1F, 0x15, 0x1F, 0x1F, True, 0x1E), # Crash Cymbal
+    51: (0x40, 0x1E, 0x08, 0x0C, 0x1F, 0x15, 0x1F, 0x1F, True, 0x1E), # Ride Cymbal
+}
 
 
 def _pan_bits(pan: int) -> int:
@@ -62,7 +75,10 @@ class OpmSystem:
         self.sustain = [False] * 16
         self.ch_vol = [127] * 16
         self.ch_expr = [127] * 16
-        self.ch_brightness = [64] * 16  # 新增：CC74 亮度，默认 64（中心点）
+        self.ch_brightness = [64] * 16 
+        
+        # 专属鼓通道（物理通道 7）
+        self.drum_ch = self.n_ch - 1
         
         self.serial = 0
         self.time = 0.0
@@ -74,7 +90,7 @@ class OpmSystem:
     def _init_hardware(self):
         for ch in range(self.n_ch):
             self._w(0x08, ch)
-        self._w(0x0F, 0x00) # 关闭硬件 Noise
+        self._w(0x0F, 0x00) # 关闭 Noise
 
     def load_bank(self, voices: list[OpmVoice]) -> None:
         self.voices = list(voices)
@@ -104,7 +120,6 @@ class OpmSystem:
         con = v.ch[2] & 7
         carriers = CARRIER_MASK.get(con, (0, 0, 0, 1))
 
-        # 1. 计算载波（Carrier）的音量衰减：受力度、CC7、CC11 影响
         vel = max(0, min(127, velocity))
         vol = self.ch_vol[midi_ch]
         expr = self.ch_expr[midi_ch]
@@ -122,10 +137,7 @@ class OpmSystem:
         atten_carrier = int(round(total_db / TL_DB_PER_STEP))
         atten_carrier = max(0, min(127, atten_carrier))
 
-        # 2. 计算调制器（Modulator）的音量衰减：受 CC74 亮度影响
-        # CC74 越小（变暗），调制器被压得越小声，高频谐波越少
-        bright = self.ch_brightness[midi_ch]  # 0~64
-        # 最大衰减量设为 48（约 36dB），避免完全变成纯正弦波
+        bright = self.ch_brightness[midi_ch] 
         atten_mod = int((64 - bright) * 0.75) 
 
         for i, op in enumerate(v.ops):
@@ -161,49 +173,46 @@ class OpmSystem:
         return -1
 
     def _allocate(self, midi_ch: int, note: int) -> int:
-        # 1. 优先找同 MIDI 通道、空闲的槽
-        for i, s in enumerate(self.slots):
+        # 严格限制普通音符只能在 0 ~ 6 通道发声
+        max_slots = self.drum_ch
+
+        for i in range(max_slots):
+            s = self.slots[i]
             if not s.active and not s.pending_off and s.midi_ch == midi_ch:
                 return i
 
-        # 2. 找任何完全空闲的槽
         found = -1
-        for i, s in enumerate(self.slots):
+        for i in range(max_slots):
+            s = self.slots[i]
             if not s.active and not s.pending_off:
                 found = i
                 break
                 
         if found < 0:
-            # 3. 找其他通道完全空闲的槽
-            for i, s in enumerate(self.slots):
+            for i in range(max_slots):
+                s = self.slots[i]
                 if not s.active and not s.pending_off and s.midi_ch != midi_ch:
                     found = i
                     break
 
-        # 4. 所有槽都满了，开始 NECOPN 大逃杀
         if found < 0:
             best_midi = -1
             best_serial = 2**31
-            for i, s in enumerate(self.slots):
-                # 找 MIDI 通道号最大的（数值越大，优先级越低）
+            for i in range(max_slots):
+                s = self.slots[i]
                 if s.midi_ch > best_midi:
                     best_midi = s.midi_ch
                     found = i
                     best_serial = s.serial
                 elif s.midi_ch == best_midi and s.serial < best_serial:
-                    # 通道号相同，找最早按下的（serial 最小）
                     found = i
                     best_serial = s.serial
                     
             if found < 0:
                 return -1
-                
-            # NECOPN 绝杀：如果被杀的槽的通道号（优先级）比当前请求的还要小，
-            # 说明当前请求是最低优先级的，直接拒绝发声！
             if self.slots[found].midi_ch < midi_ch:
                 return -1
 
-        # 如果抢占的是正在发声的通道，必须先发 Key-Off 截断它
         s = self.slots[found]
         if s.active:
             self._w(0x08, found) 
@@ -219,10 +228,61 @@ class OpmSystem:
         s.pending_off = False
         s.release_time = self.time
 
+    def _play_drum(self, note: int, velocity: int) -> None:
+        """在专属鼓通道（物理通道 7）硬写 FM 鼓点"""
+        if note not in FM_DRUMS:
+            return
+            
+        ch = self.drum_ch
+        kc, fl_con, mul_dt1, tl, ar_ks, dr, sr_dt2, sl_rr, use_noise, noise_freq = FM_DRUMS[note]
+        
+        # 力度映射到 TL 音量 (力度越小，TL越大，声音越小)
+        vel_tl = (127 - velocity) >> 1
+        
+        # 1. 硬件噪声控制 (寄存器 0x0F)
+        if use_noise:
+            self._w(0x0F, 0x80 | (noise_freq & 0x1F))
+        else:
+            self._w(0x0F, 0x00)
+            
+        # 2. 强行停止通道 7 的上一个音
+        self._w(0x08, ch)
+        
+        # 3. 写入鼓音色参数 (FL_CON)
+        self._w(0x20 + ch, fl_con)
+        
+        # 这里我们只开算子 4 (物理 C2 载波发声)，其他静音
+        for i in range(4):
+            base = VOPM_OP_REG[i] * 8 + ch
+            op_tl = (tl + vel_tl) if i == 3 else 127
+            
+            self._w(0x40 + base, mul_dt1)
+            self._w(0x60 + base, op_tl & 0x7F)
+            self._w(0x80 + base, ar_ks)
+            self._w(0xA0 + base, dr)
+            self._w(0xC0 + base, sr_dt2)
+            self._w(0xE0 + base, sl_rr)
+            
+        # 4. 设置音高并触发 Key-On (只开 C2 物理 slot: 3)
+        self._w(0x28 + ch, kc)
+        self._w(0x30 + ch, 0x00)
+        self._w(0x08, 0x08 | ch) 
+        
+        # 记录状态，虽然它不参与大逃杀，但保留状态以便调试
+        s = self.slots[ch]
+        s.midi_ch, s.note, s.velocity = 9, note, velocity
+        s.active, s.released, s.pending_off = True, False, False
+        s.start_time = self.time
+
     def note_on(self, midi_ch: int, note: int, velocity: int) -> None:
         midi_ch &= 0x0F
+        
+        # 拦截 MIDI 通道 10 的鼓点
         if midi_ch == 9:
+            if velocity > 0:
+                self._play_drum(note, velocity)
             return
+            
         if velocity == 0:
             return self.note_off(midi_ch, note)
         if self._find(midi_ch, note) >= 0:
@@ -249,13 +309,15 @@ class OpmSystem:
         self._update_tl(ch, v, velocity)
         self._set_pitch(ch, self._pitch_with_bend(midi_ch, note))
 
-        # key-on
         self._w(0x08, 0x78 | ch)
 
     def note_off(self, midi_ch: int, note: int) -> None:
         midi_ch &= 0x0F
+        
+        # 鼓通常不需要 Note Off（硬件自身极速衰减），直接忽略通道 10 的 Note Off
         if midi_ch == 9:
             return
+            
         ch = self._find(midi_ch, note)
         if ch < 0:
             return
@@ -269,29 +331,27 @@ class OpmSystem:
 
     def pitch_bend(self, midi_ch: int, lsb: int, msb: int) -> None:
         midi_ch &= 0x0F
+        if midi_ch == 9:
+            return
         self.bend14[midi_ch] = ((msb & 0x7F) << 7) | (lsb & 0x7F)
         for i, s in enumerate(self.slots):
-            if s.active and s.midi_ch == midi_ch:
+            if s.active and s.midi_ch == midi_ch and i != self.drum_ch:
                 self._set_pitch(i, self._pitch_with_bend(midi_ch, s.note))
 
     def control_change(self, midi_ch: int, cc: int, value: int) -> None:
         midi_ch &= 0x0F
+        if midi_ch == 9:
+            return
         
-        # --- 音量与表情 ---
         if cc == 0x07:
             self.ch_vol[midi_ch] = value
             self._refresh_channel_tl(midi_ch)
         elif cc == 0x0B:
             self.ch_expr[midi_ch] = value
             self._refresh_channel_tl(midi_ch)
-            
-        # --- CC74 亮度控制 (XG standard) ---
         elif cc == 0x4A:
-            # CC74 范围 0~127，但 XG 规范里通常只用到 0~64，64 以上视为全亮
             self.ch_brightness[midi_ch] = min(64, value)
             self._refresh_channel_tl(midi_ch)
-            
-        # --- 踏板与复位 ---
         elif cc == 0x40:
             if value >= 64:
                 self.sustain[midi_ch] = True
@@ -324,7 +384,7 @@ class OpmSystem:
 
     def _refresh_channel_tl(self, midi_ch: int) -> None:
         for i, s in enumerate(self.slots):
-            if s.active and s.midi_ch == midi_ch:
+            if s.active and s.midi_ch == midi_ch and i != self.drum_ch:
                 v = self.voices[s.program % max(1, len(self.voices))]
                 self._update_tl(i, v, s.velocity)
 

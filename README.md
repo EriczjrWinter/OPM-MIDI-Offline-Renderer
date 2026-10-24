@@ -14,9 +14,8 @@ Inspired by the dynamic voice-stealing (note-dropping) mechanism of the classic 
 ### Features
 - **Hardware-Accurate Rendering**: Powered by the C-based Nuked OPM for cycle-accurate YM2151 emulation (64 clocks per sample).
 - **Dynamic Voice Stealing (NECOPN Style)**: Automatically manages the 8 physical channels, ruthlessly cutting off lower-priority tracks when polyphony is exceeded.
-- **Optimized Performance**: Uses pure integer operations (`v >> 1`) for volume scaling, avoiding floating-point bottlenecks and digital clipping.
+- **Hardware FM Drum Synthesis**: Since the YM2151 lacks ADPCM/Sample playback, this project synthesizes GM standard drum kits (Channel 10) using pure FM hardware noise and ultra-fast envelopes. One physical channel (Ch 7) is exclusively reserved for percussion, fully exempt from the voice-stealing algorithm.
 - **CC74 Brightness Control**: Implements CC74 (Brightness) based on Wohlstand's approach (libOPNMIDI), dynamically adjusting the Modulator's TL to simulate a low-pass filter effect on the FM timbre.
-- **Custom OPM Patches**: Optimized for dynamic snapshot `.opm` presets extracted from the `NECOPN.DRV`.
 
 ### Requirements
 - Python 3.8+
