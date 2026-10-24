@@ -17,6 +17,16 @@ Inspired by the dynamic voice-stealing (note-dropping) mechanism of the classic 
 - **Hardware FM Drum Synthesis**: Since the YM2151 lacks ADPCM/Sample playback, this project synthesizes GM standard drum kits (Channel 10) using pure FM hardware noise and ultra-fast envelopes. One physical channel (Ch 7) is exclusively reserved for percussion, fully exempt from the voice-stealing algorithm.
 - **CC74 Brightness Control**: Implements CC74 (Brightness) based on Wohlstand's approach (libOPNMIDI), dynamically adjusting the Modulator's TL to simulate a low-pass filter effect on the FM timbre.
 
+### 🔄 Interoperability with WOPN Banks
+
+This engine is not limited to the `.opm` presets extracted from `NECOPN.DRV`. We have tested that valid **`.wopn` (WOPN2-B2NK)** banks designed for `libOPNMIDI` can also be perfectly utilized by this engine after being converted to `.opm` format.
+
+**How to use WOPN banks with this renderer:**
+1. **Get WOPN Banks**: You can find a wide variety of instrument banks in the [libOPNMIDI repository](https://github.com/Wohlstand/libOPNMIDI).
+2. **Get OPN2-BE**: Download the **DEV (Development) version** of [OPN2BankEditor](https://github.com/Wohlstand/OPN2BankEditor) to ensure you have the latest WOPN parsing and OPM export support.
+3. **Convert to OPM**: Open the `.wopn` file in OPN2-BE and export it as an `.opm` preset bank.
+4. **Render**: Run the Python engine and specify the converted `.opm` file via the CLI arguments.
+
 ### Requirements
 - Python 3.8+
 - **Nuked OPM Core (`opm.dll` / `opm.so`)**: The compiled C core must be placed in the root directory. Note that Nuked OPM is a CPU-intensive cycle-accurate emulator; rendering speed depends on your CPU, though the Python wrapper is highly optimized.
