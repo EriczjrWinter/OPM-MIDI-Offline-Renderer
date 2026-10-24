@@ -1,16 +1,5 @@
 # -*- coding: utf-8 -*-
-"""标准 MIDI 文件（SMF type 0/1/2）解析 —— 只取播放需要的部分。
-
-产出绝对时间（秒）排序的事件列表：(t, kind, ch, d1, d2)
-kind: 'on' | 'off' | 'cc' | 'prog' | 'bend' | 'tempo' | 'meta'
-
-修复记录
---------
-1. 早期版本在元事件分支 `continue` 时保留了 `status = 0xFF`，导致紧随其后的
-   running status 音符事件被误读。此版本已修正。
-2. 兼容 CSWare 社等老GAL厂商内提取的非标准软件生成的 `FF 51 04` (非标准长度 Tempo 事件)。
-   这会导致内置 4 字节长度，但只有前 3 字节是真实数据，第 4 字节为冗余。
-"""
+"""标准 MIDI 文件（SMF type 0/1/2）解析 —— 只取播放需要的部分。"""
 from __future__ import annotations
 
 import struct
@@ -28,7 +17,6 @@ class Event:
 
 
 def _read_vlq(buf: bytes, i: int, end: int) -> Tuple[int, int]:
-    """读变长量。最多 4 字节（标准 SMF 上限）。越界抛 ValueError。"""
     v = 0
     for _ in range(4):
         if i >= end:
@@ -42,7 +30,6 @@ def _read_vlq(buf: bytes, i: int, end: int) -> Tuple[int, int]:
 
 
 def parse_smf(data: bytes, debug: bool = False) -> Tuple[List[Event], int, int]:
-    """返回 (事件表, 每四分音符 tick 数, 曲长秒数)。"""
     if data[:4] != b"MThd":
         raise ValueError("不是 SMF 文件")
     hdr_len, fmt, ntrk, division = struct.unpack_from(">IHHH", data, 4)
@@ -56,6 +43,7 @@ def parse_smf(data: bytes, debug: bool = False) -> Tuple[List[Event], int, int]:
     pos = 8 + hdr_len
     tempo_map: List[Tuple[int, int]] = []
     raw_events: List[Tuple[int, int, int, int, int]] = []
+    max_abs_tick = 0  # 【修复 1】用于记录整个文件的绝对最大 Tick（包含结尾空白）
 
     for track_i in range(ntrk):
         if pos + 8 > len(data) or data[pos:pos + 4] != b"MTrk":
@@ -81,7 +69,6 @@ def parse_smf(data: bytes, debug: bool = False) -> Tuple[List[Event], int, int]:
                 break
             b = data[i]
 
-            # ---- 状态字节 vs 运行状态 ----
             if b & 0x80:
                 if b < 0xF0:
                     running_status = b
@@ -90,8 +77,7 @@ def parse_smf(data: bytes, debug: bool = False) -> Tuple[List[Event], int, int]:
             else:
                 status = running_status
                 if status == 0:
-                    raise ValueError(
-                        f"track {track_i} @ {i:#x}: 无 running status 时收到数据字节 {b:#x}")
+                    raise ValueError(f"track {track_i} @ {i:#x}: 无 running status 时收到数据字节 {b:#x}")
 
             # ---- 元事件 ----
             if status == 0xFF:
@@ -103,29 +89,27 @@ def parse_smf(data: bytes, debug: bool = False) -> Tuple[List[Event], int, int]:
                 if i + ln > end:
                     raise ValueError(f"track {track_i}: 元事件 payload 越界")
                 
-                # 【核心修复区】：兼容 CSWare 的 FF 51 04 错误
-                if meta == 0x51:
-                    if ln >= 3:
-                        payload = data[i:i + 3]
-                        tempo_map.append((tick, (payload[0] << 16) | (payload[1] << 8) | payload[2]))
-                # 统一步进跳过整个元事件长度（包括脏数据的 4 字节）
+                # 【修复 2】兼容 FF 51 04，并加入合理性检查
+                if meta == 0x51 and ln >= 3:
+                    payload = data[i:i + 3]
+                    usec = (payload[0] << 16) | (payload[1] << 8) | payload[2]
+                    # 合法 BPM 限制 (20 ~ 500 BPM)
+                    if 120000 <= usec <= 3000000:
+                        tempo_map.append((tick, usec))
+                    else:
+                        if debug:
+                            print(f"[SMF] ⚠️ 忽略异常 Tempo: {payload.hex()}")
+                
                 i += ln
                 n_meta += 1
                 continue
 
-            # ---- 系统专用消息 / SysEx ----
             if status in (0xF0, 0xF7):
                 ln, i = _read_vlq(data, i, end)
-                if i + ln > end:
-                    raise ValueError(f"track {track_i}: SysEx payload 越界")
                 i += ln
                 continue
-
-            # ---- 系统实时消息 ----
             if status >= 0xF8:
                 continue
-
-            # ---- 系统公共消息 ----
             if status == 0xF1 or status == 0xF3:
                 i += 1
                 continue
@@ -139,30 +123,25 @@ def parse_smf(data: bytes, debug: bool = False) -> Tuple[List[Event], int, int]:
             kind = status & 0xF0
             ch = status & 0x0F
             if kind in (0xC0, 0xD0):
-                if i >= end:
-                    raise ValueError(f"track {track_i}: 通道消息 @ {i:#x} 截断")
                 d1 = data[i]
                 i += 1
                 d2 = 0
             else:
-                if i + 2 > end:
-                    raise ValueError(f"track {track_i}: 通道消息 @ {i:#x} 截断")
                 d1 = data[i]
                 d2 = data[i + 1]
                 i += 2
 
             if kind in (0x80, 0x90, 0xB0, 0xC0, 0xE0):
                 raw_events.append((tick, kind, ch, d1, d2))
-                if kind == 0x90 and d2 > 0:
-                    n_on += 1
-                elif kind == 0x80 or (kind == 0x90 and d2 == 0):
-                    n_off += 1
-                elif kind == 0xC0:
-                    n_prog += 1
-                elif kind == 0xB0:
-                    n_cc += 1
-                elif kind == 0xE0:
-                    n_bend += 1
+                if kind == 0x90 and d2 > 0: n_on += 1
+                elif kind == 0x80 or (kind == 0x90 and d2 == 0): n_off += 1
+                elif kind == 0xC0: n_prog += 1
+                elif kind == 0xB0: n_cc += 1
+                elif kind == 0xE0: n_bend += 1
+
+        # 【修复 3】记录该轨道的绝对结尾 Tick（不管有没有音符）
+        if tick > max_abs_tick:
+            max_abs_tick = tick
 
         if debug:
             tail = data[max(0, end - 4):end].hex()
@@ -195,7 +174,12 @@ def parse_smf(data: bytes, debug: bool = False) -> Tuple[List[Event], int, int]:
     for tick, kind, ch, d1, d2 in raw_events:
         events.append(Event(tick_to_sec(tick), name_map[kind], ch, d1, d2))
     events.sort(key=lambda e: e.t)
-    total = max((e.t for e in events), default=0.0)
+
+    # 【修复 4】总时长优先以轨道的绝对物理末端为准，防止吃掉尾部留白
+    if max_abs_tick > 0:
+        total = tick_to_sec(max_abs_tick)
+    else:
+        total = max((e.t for e in events), default=0.0)
 
     if debug:
         print(f"[SMF] 总计: events={len(events)} tempo_marks={len(tempo_map)} "
