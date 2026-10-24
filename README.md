@@ -54,7 +54,7 @@ Swapping the Core: If you prefer a smoother, VST-like sound, the project's modul
 
 Credits & Sound Bank
 Thanks to Wohlstand for his guidance on WOPN.
-Special thanks to @ipcima (for implementing the foundational OPM bank export support in OPN2-BE, which made the WOPN-to-OPM cross-chip workflow possible).
+Special thanks to JP Cimalando (for implementing the foundational OPM bank export support in OPN2-BE, which made the WOPN-to-OPM cross-chip workflow possible).
 Sound Bank (OPM Presets): The .opm patches provided in this repo are dynamically extracted from the reverse-engineered NECOPN.DRV.
 Check out the extraction project here: https://github.com/EriczjrWinter/necopn-drv-reverse
 
