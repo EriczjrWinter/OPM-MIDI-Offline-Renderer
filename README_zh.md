@@ -51,6 +51,7 @@ midi: 输入的 MIDI 文件路径。
 
 音色库与致谢
 感谢 Wohlstand 在 WOPN 格式上的耐心解答。
+特别感谢@ipcima（在OPN2-BE中实现了基础的OPM库导出支持，使WOPN到OPM的跨芯片工作流程成为可能）。
 音色库 (OPM 预设)：仓库中提供的 .opm 预设源自 NECOPN.DRV 的逆向提取工程。
 提取工具与逆向工程请访问：https://github.com/EriczjrWinter/necopn-drv-reverse
 
