@@ -50,6 +50,7 @@ midi: 输入的 MIDI 文件路径。
 如何更换核心：如果你更偏好 VST 那种平滑、柔和的声音，你可以自行替换核心。请参考 core.py 中的封装逻辑，实现 ChipCore 抽象基类（编写你自己的接口），并传入 driver.py 即可无缝切换（例如移植 fmgen）。
 
 音色库与致谢
+感谢 Wohlstand 在 WOPN 格式上的耐心解答。
 音色库 (OPM 预设)：仓库中提供的 .opm 预设源自 NECOPN.DRV 的逆向提取工程。
 提取工具与逆向工程请访问：https://github.com/EriczjrWinter/necopn-drv-reverse
 
