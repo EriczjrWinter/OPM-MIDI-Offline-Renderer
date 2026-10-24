@@ -11,6 +11,17 @@ OPM MIDI 离线渲染合成器
 - **纯 FM 鼓组合成 (FM Drum Synthesis)**：由于 YM2151 硬件本身不具备 OPN 的 ADPCM 或板载 RHY，本项目利用芯片内置的“硬件噪声(Noise)”与极速包络，直接在寄存器层硬编码合成了一套 GM 标准鼓组。系统强制保留物理通道 7 作为专属鼓轨，该通道享受大逃杀机制的“绝对豁免权”，保证打击乐永远不被旋律抢占。
 - **CC74 亮度辅助**：参考 Wohlstand (libOPNMIDI) 的实现思路，支持 CC74 (Brightness) 控制器，通过动态调整 FM 调制器（Modulator）的电平，模拟出低通滤波器的明暗变化。
 
+### 🔄 与 WOPN 音色库的互操作性
+
+本引擎并不局限于从 `NECOPN.DRV` 提取的内置 `.opm` 预设。经过实际测试，任何为 `libOPNMIDI` 设计的合规 **`.wopn` (WOPN2-B2NK)** 音色库，在转换为 `.opm` 格式后，同样能被本引擎完美识别并演奏。
+
+**如何使用 WOPN 音色库：**
+1. **获取 WOPN 音色库**：你可以在 [libOPNMIDI 仓库](https://github.com/Wohlstand/libOPNMIDI) 中找到各种丰富的音色库。
+2. **获取 OPN2-BE**：请下载 [OPN2BankEditor](https://github.com/Wohlstand/OPN2BankEditor) 的 **DEV (开发) 版本**，以确保获得最新的 WOPN 解析和 OPM 导出支持。
+3. **转换为 OPM**：使用 OPN2-BE 打开 `.wopn` 文件，并将其导出为 `.opm` 预设库。
+4. **渲染**：在命令行中指定转换好的 `.opm` 文件，运行本 Python 渲染引擎即可。
+
+
 环境依赖
 Python 3.8+
 
