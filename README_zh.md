@@ -35,7 +35,7 @@
 ## 🚀 快速开始
 
 ### 将 MIDI 文件渲染为 WAV
-```bash
+bash
 python player.py "path/to/your.mid" --bank "NECOPN_GM.opm" -o "output.wav"
 
 命令行参数
