@@ -1,58 +1,83 @@
-OPM MIDI 离线渲染合成器
+OPM MIDI 离线渲染器
+Language: [English(README.md) | 简体中文]
 
-项目简介
-这是一个基于 Nuked OPM（逐周期精确仿真的 YM2151 芯片核心）构建的轻量级、高性能 MIDI 离线渲染合成器。
+本项目是一个轻量级、高性能的离线 MIDI 转 WAV 合成器，基于 Nuked OPM（周期精确的 YM2151 模拟器）构建。受经典 PC-98 NECOPN.DRV 驱动器的动态声部抢占（丢音）机制启发，本渲染器严格将播放限制在 8 个硬件通道（YM2151 的物理上限）内。当复音数超过硬件限制时，系统会执行"大逃杀"（声部抢占）算法——优先保留主旋律，并激进地切断较旧或较低优先级的音符，以还原 90 年代 FM 音效芯片真实而怀旧的听感。
 
-本项目致敬并复现了经典 PC-98 平台 NECOPN.DRV 驱动的“动态丢音”（Voice Stealing / 大逃杀）机制。由于 YM2151 硬件只有 8 个物理通道，当 MIDI 音轨数超过硬件限制时，系统会执行优先级抢占策略——优先保障主旋律，无情切断老旧或低优先级的音符，完美还原 90 年代 FM 街机音源的复古听感。
+🎯 状态: 离线渲染器功能完整，包含硬件级精确的 YM2151 模拟、NECOPN 风格声部抢占、硬件 FM 鼓合成以及 CC74 亮度控制。WOPN 银行互操作性已通过验证。
 
-核心特性
-- **硬件级精确渲染**：底层调用 C 语言的 Nuked OPM 核心，实现精确到 64 clock 的芯片级仿真。
-- **动态丢音机制**：完美复刻 NECOPN 的通道分配逻辑，在 8 通道满载时执行残酷的“大逃杀”抢音。
-- **纯 FM 鼓组合成 (FM Drum Synthesis)**：由于 YM2151 硬件本身不具备 OPN 的 ADPCM 或板载 RHY，本项目利用芯片内置的“硬件噪声(Noise)”与极速包络，直接在寄存器层硬编码合成了一套 GM 标准鼓组。系统强制保留物理通道 7 作为专属鼓轨，该通道享受大逃杀机制的“绝对豁免权”，保证打击乐永远不被旋律抢占。
-- **CC74 亮度辅助**：参考 Wohlstand (libOPNMIDI) 的实现思路，支持 CC74 (Brightness) 控制器，通过动态调整 FM 调制器（Modulator）的电平，模拟出低通滤波器的明暗变化。
+📦 开箱即用: 已内置默认 NECOPN_GM.opm 音色银行（从逆向工程还原的 NECOPN.DRV 中动态提取）。无需准备外部银行即可直接渲染。
 
-### 🔄 与 WOPN 音色库的互操作性
+🏗️ 架构与核心要点
+1. 周期精确的 YM2151 模拟
+由 C 语言编写的 Nuked OPM 核心驱动，每个采样模拟 64 个时钟周期。这是一个 CPU 密集型模拟器，但 Python 封装层已高度优化。
 
-本引擎并不局限于从 `NECOPN.DRV` 提取的内置 `.opm` 预设。经过实际测试，任何为 `libOPNMIDI` 设计的合规 **`.wopn` (WOPN2-B2NK)** 音色库，在转换为 `.opm` 格式后，同样能被本引擎完美识别并演奏。
+2. 动态声部抢占（NECOPN 风格）
+渲染器严格限制在 8 个硬件通道内。当复音数超过硬件上限时，"大逃杀"声部抢占算法会优先保留主旋律，并激进地切断较旧或较低优先级的音符——模拟原始 NECOPN.DRV 驱动器的真实丢音行为。
 
-**如何使用 WOPN 音色库：**
-1. **获取 WOPN 音色库**：你可以在 [libOPNMIDI 仓库](https://github.com/Wohlstand/libOPNMIDI) 中找到各种丰富的音色库。
-2. **获取 OPN2-BE**：请下载 [OPN2BankEditor](https://github.com/Wohlstand/OPN2BankEditor) 的 **DEV (开发) 版本**，以确保获得最新的 WOPN 解析和 OPM 导出支持。
-3. **转换为 OPM**：使用 OPN2-BE 打开 `.wopn` 文件，并将其导出为 `.opm` 预设库。
-4. **渲染**：在命令行中指定转换好的 `.opm` 文件，运行本 Python 渲染引擎即可。
+3. 硬件 FM 鼓合成
+由于 YM2151 不支持 ADPCM/采样播放，GM 标准鼓组（通道 10）通过纯 FM 硬件噪声和超快包络合成。一个物理通道（Ch 7）专供打击乐使用，完全豁免于声部抢占算法。
 
+4. CC74 亮度控制
+按照 Wohlstand 的方案（libOPNMIDI）实现 CC74（亮度）：动态调整调制器 TL，以模拟 FM 音色上的低通滤波效果。
 
-环境依赖
+📦 必需资源
 Python 3.8+
 
-Nuked OPM 核心 (opm.dll / opm.so)：请确保编译好的 C 语言动态链接库文件存在于项目根目录。注意：Nuked OPM 是逐周期仿真，对单核 CPU 性能有一定要求，但 Python 端的封装已经过极致的性能优化。
+Nuked OPM 核心（opm.dll / opm.so）
 
-使用方法
-将标准 MIDI 文件渲染为 WAV：
+编译好的 C 核心必须放置在根目录中。请注意，Nuked OPM 是 CPU 密集型的周期精确模拟器，渲染速度取决于你的 CPU。
 
+音色库（.opm）
+
+默认的 NECOPN_GM.opm 已内置，从逆向工程还原的 NECOPN.DRV 中动态提取。
+
+也可以使用任何有效的 .opm 音色库，包括由 WOPN 转换而来的音色库（见下文）。
+
+🚀 快速开始
+将 MIDI 文件渲染为 WAV
 bash
-python player.py "你的文件.mid" --bank "NECOPN_GM.opm" -o "输出.wav"
-命令行参数：
+python player.py "path/to/your.mid" --bank "NECOPN_GM.opm" -o "output.wav"
 
-midi: 输入的 MIDI 文件路径。
+命令行参数
+参数	默认值	说明
+midi	—	输入 MIDI 文件的路径。
+--bank	NECOPN_GM.opm	.opm 音色银行的路径。
+-o, --out	—	输出 .wav 文件的路径。
+--tail	1.0	结尾额外渲染的音频秒数。
+--clock	3579545	OPM 芯片的主时钟（Hz）。
 
---bank: .opm 音色库路径（默认：NECOPN_GM.opm）。
+🔄 与 WOPN 银行的互操作性
+本引擎不仅限于从 NECOPN.DRV 中提取的 .opm 预设。为 libOPNMIDI 设计的有效 .wopn（WOPN2-B2NK） 银行在转换为 .opm 格式后，也可以被本引擎完美使用。
 
--o, --out: 输出的 .wav 文件路径。
+如何在本渲染器中使用 WOPN 银行：
 
---tail: 渲染尾部多保留的余响秒数（默认 1.0）。
+获取 WOPN 银行：可在 libOPNMIDI 仓库 中找到各种乐器银行。
 
---clock: OPM 芯片主时钟频率（默认 3,579,545 Hz）。
+获取 OPN2-BE：下载 OPN2BankEditor 的 DEV（开发）版本，以确保获得最新的 WOPN 解析和 OPM 导出支持。
 
-免责声明与核心替换指南
-硬件固有瑕疵：由于本项目使用的是 Nuked OPM 核心，它输出的是没有任何现代 DSP 平滑处理、也没有内置低通滤波（LPF）的“裸数字信号”。因此，在 MIDI 事件极其密集，或使用高反馈（FL）音色时，可能会产生刺耳的“锯齿毛刺”或高频混叠。这是真实硬件物理特性的忠实呈现，而非 BUG。
+转换为 OPM：在 OPN2-BE 中打开 .wopn 文件，并导出为 .opm 预设银行。
 
-如何更换核心：如果你更偏好 VST 那种平滑、柔和的声音，你可以自行替换核心。请参考 core.py 中的封装逻辑，实现 ChipCore 抽象基类（编写你自己的接口），并传入 driver.py 即可无缝切换（例如移植 fmgen）。
+渲染：运行 Python 引擎，并通过 --bank 指定转换后的 .opm 文件。
 
-音色库与致谢
-感谢 Wohlstand 在 WOPN 格式上的耐心解答。
-特别感谢JP Cimalando（在OPN2-BE中实现了基础的OPM库导出支持，使WOPN到OPM的跨芯片工作流程成为可能）。
-音色库 (OPM 预设)：仓库中提供的 .opm 预设源自 NECOPN.DRV 的逆向提取工程。
-提取工具与逆向工程请访问：https://github.com/EriczjrWinter/necopn-drv-reverse
+🔬 技术细节
+周期精确核心：Nuked OPM 每个采样模拟 64 个时钟周期的 YM2151。
 
-核心仿真器：感谢 Nuke.YKT 开发的 https://github.com/nukeykt/Nuked-OPM
+声部抢占：8 通道硬限制，基于优先级的丢音策略，与 NECOPN.DRV 行为一致。
+
+鼓通道保留：物理通道 7 专供 FM 打击乐使用，不参与声部抢占。
+
+CC74 亮度：按照 libOPNMIDI 的实现调整调制器 TL。
+
+⚠️ 已知说明
+硬件特性与不可控伪影：由于本项目使用 Nuked OPM，它模拟的是 YM2151 芯片的原始数字输出，没有现代 DSP 平滑或内置低通滤波器。因此，密集的 MIDI 事件或高反馈音色可能产生刺耳的"拉链噪声"或高频混叠。这是硬件的真实特性，而非 bug。
+
+替换核心：如果你偏好更平滑、VST 般的听感，本项目的模块化设计允许你替换核心。参考 core.py 中的封装逻辑，实现 ChipCore 抽象类以包装其他模拟器（如 fmgen），然后传递给 driver.py。
+
+🙏 致谢与免责声明
+感谢 Wohlstand与JP Cimalando 在 OPN2-BE 中实现基础的 OPM 音色库导出支持，使 WOPN→OPM 跨芯片工作流成为可能。
+
+音色银行（OPM 预设）：本仓库提供的 .opm 音色从逆向工程还原的 NECOPN.DRV 中动态提取。提取项目地址：https://github.com/EriczjrWinter/necopn-drv-reverse
+
+模拟核心：Nuked-OPM，作者 Nuke.YKT。
+
+本项目仅用于教育与保存目的。所有权利归各自所有者所有。
