@@ -35,7 +35,7 @@ Implements CC74 (Brightness) following Wohlstand's approach (libOPNMIDI): the Mo
 ## 🚀 Quick Start
 
 ### Render a MIDI file to WAV
-```bash
+bash
 python player.py "path/to/your.mid" --bank "NECOPN_GM.opm" -o "output.wav"
 
 ### 🎛️ CLI Arguments
