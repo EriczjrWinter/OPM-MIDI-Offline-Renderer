@@ -28,26 +28,27 @@ TL_DB_PER_STEP = 0.75
 # 硬编码的 FM 硬件鼓音色 (GM 映射)
 # 格式: (KC, FL_CON, MUL_DT1, TL, AR_KS, DR, SR_DT2, SL_RR, 是否开启噪声, 噪声频率)
 FM_DRUMS = {
-    # 底鼓 (Kick): 加强低频冲击力
-    # 调整: 降低 KC 音高，使用 MUL=0 (0.5倍频) 以产生更低的基频；加快 DR 使衰减更迅速。
-    35: (0x10, 0x3D, 0x01, 0x00, 0x1F, 0x14, 0x10, 0x1F, False, 0),  # Acoustic Bass Drum
-    36: (0x18, 0x3D, 0x01, 0x00, 0x1F, 0x14, 0x10, 0x1F, False, 0),  # Bass Drum 1
+    # 35/36 底鼓 (Kick): 不需要噪声，纯 M1 低频发威
+    # M1_TL=0 (最响), C2_TL=127 (静音), FL_CON=0x3F (算法7,反馈满), M1_MUL=0 (0.5倍频产生极低频)
+    35: (0x00, 0x7F, 0x3F, 0x00, 0x1F, 0x14, 0x00, 0x0F, False, 0),
+    36: (0x00, 0x7F, 0x3F, 0x00, 0x1F, 0x14, 0x00, 0x0F, False, 0),
 
-    # 军鼓 (Snare): 增强“响弦”的脆度和“鼓腔”的体感
-    # 调整: 提高噪声频率 (NFRQ) 让“沙沙”声更突出；加快 DR 缩短尾巴。
-    38: (0x30, 0x1E, 0x05, 0x08, 0x1F, 0x14, 0x0F, 0x1F, True, 0x18), # Acoustic Snare
-    40: (0x38, 0x1E, 0x05, 0x06, 0x1F, 0x14, 0x0F, 0x1F, True, 0x18), # Electric Snare
+    # 38/40 军鼓 (Snare): M1 提供军鼓的“腔体震动”，C2 提供响弦的“沙沙声”
+    # M1_TL=8, C2_TL=12 (两者混合), M1_MUL=5 (增加音调金属感), C2 开启噪声
+    38: (0x08, 0x0C, 0x07, 0x05, 0x1F, 0x14, 0x10, 0x1F, True, 0x18),
+    40: (0x08, 0x0C, 0x07, 0x05, 0x1F, 0x14, 0x10, 0x1F, True, 0x18),
 
-    # 踩镲 (Hi-Hat): 追求极致的短促与清脆
-    # 调整: 提高噪声频率 (NFRQ) 至接近极限；将 DR 设为最大值 (0x1F)，使声音在几毫秒内消失。
-    42: (0x40, 0x1E, 0x08, 0x0A, 0x1F, 0x1F, 0x1F, 0x1F, True, 0x1E), # Closed Hi-Hat
-    46: (0x40, 0x1E, 0x08, 0x08, 0x1F, 0x1F, 0x1F, 0x1F, True, 0x1E), # Open Hi-Hat
+    # 42/46 踩镲 (Hi-Hat): 几乎纯噪声，极快衰减
+    # M1_TL=127 (静音), C2_TL=0 (最响), C2_DR=0x1F (极速衰减)
+    42: (0x7F, 0x00, 0x07, 0x01, 0x1F, 0x00, 0x1F, 0x0F, True, 0x1F),
+    46: (0x7F, 0x00, 0x07, 0x01, 0x1F, 0x00, 0x1F, 0x0F, True, 0x1F),
 
-    # 吊镲 (Cymbal): 在长衰减和通道释放间取得平衡
-    # 调整: DR 稍微放缓 (0x12)，让镲片有“余音”；但 SR 和 RR 保持较快，避免长时间占用通道。
-    49: (0x40, 0x1E, 0x08, 0x0C, 0x1F, 0x12, 0x18, 0x1F, True, 0x1A), # Crash Cymbal
-    51: (0x40, 0x1E, 0x08, 0x0C, 0x1F, 0x12, 0x18, 0x1F, True, 0x1A), # Ride Cymbal
+    # 49/51 吊镲 (Cymbal): 纯噪声，但需要更长一点的衰减余音
+    # C2_DR=0x12 (稍慢衰减), SL_RR=0x1F (释放也快)
+    49: (0x7F, 0x00, 0x07, 0x01, 0x1F, 0x00, 0x12, 0x1F, True, 0x1C),
+    51: (0x7F, 0x00, 0x07, 0x01, 0x1F, 0x00, 0x12, 0x1F, True, 0x1C),
 }
+
 
 
 def _pan_bits(pan: int) -> int:
@@ -240,46 +241,67 @@ class OpmSystem:
         s.release_time = self.time
 
     def _play_drum(self, note: int, velocity: int) -> None:
-        """在专属鼓通道（物理通道 7）硬写 FM 鼓点"""
+        """完全利用噪声与 FM 混合的打击乐发声逻辑"""
         if note not in FM_DRUMS:
             return
             
         ch = self.drum_ch
-        kc, fl_con, mul_dt1, tl, ar_ks, dr, sr_dt2, sl_rr, use_noise, noise_freq = FM_DRUMS[note]
+        (m1_tl, c2_tl, fl_con, m1_mul, ar, m1_dr, c2_dr, sl_rr, use_noise, noise_freq) = FM_DRUMS[note]
         
-        # 力度映射到 TL 音量 (力度越小，TL越大，声音越小)
-        vel_tl = (127 - velocity) >> 1
+        # 力度映射：力度越小，TL 越大（越安静）
+        vel_atten = (127 - velocity) >> 1
         
-        # 1. 硬件噪声控制 (寄存器 0x0F)
+        # 最终音量 = 基础音量 + 力度衰减
+        final_m1_tl = min(127, m1_tl + vel_atten)
+        final_c2_tl = min(127, c2_tl + vel_atten)
+        
+        # 1. 设置全局噪声参数
         if use_noise:
             self._w(0x0F, 0x80 | (noise_freq & 0x1F))
         else:
             self._w(0x0F, 0x00)
             
-        # 2. 强行停止通道 7 的上一个音
+        # 2. 停止通道 7 当前声音
         self._w(0x08, ch)
         
-        # 3. 写入鼓音色参数 (FL_CON)
+        # 3. 写入通道基本参数 (算法与反馈)
         self._w(0x20 + ch, fl_con)
         
-        # 这里我们只开算子 4 (物理 C2 载波发声)，其他静音
+        # 4. 为 4 个算子分配参数
         for i in range(4):
             base = VOPM_OP_REG[i] * 8 + ch
-            op_tl = (tl + vel_tl) if i == 3 else 127
             
-            self._w(0x40 + base, mul_dt1)
-            self._w(0x60 + base, op_tl & 0x7F)
-            self._w(0x80 + base, ar_ks)
-            self._w(0xA0 + base, dr)
-            self._w(0xC0 + base, sr_dt2)
-            self._w(0xE0 + base, sl_rr)
+            # 我们只用 M1 (i=0) 和 C2 (i=3)，其他两个算子强制静音
+            if i == 0:
+                tl = final_m1_tl
+                mul = m1_mul
+                dr = m1_dr
+            elif i == 3:
+                tl = final_c2_tl
+                mul = 0x01 # C2 倍频对噪声无效，随便给个 1
+                dr = c2_dr
+            else:
+                tl = 0x7F # C1, M2 强制静音
+                mul = 0x01
+                dr = 0x00
+                
+            self._w(0x40 + base, mul)
+            self._w(0x60 + base, tl & 0x7F)
+            self._w(0x80 + base, ar)        # 起音极快
+            self._w(0xA0 + base, dr)        # 各自的衰减率
+            self._w(0xC0 + base, 0x00)      # D2R 设为 0
+            self._w(0xE0 + base, sl_rr)     # 维持与释放
             
-        # 4. 设置音高并触发 Key-On (只开 C2 物理 slot: 3)
+        # 5. 设置音高 (KC) 并触发 Key-On
+        # 对于底鼓，KC 越低越好。对于军鼓，KC 决定了“哒”的音高。
+        kc = 0x10 if note in (35, 36) else 0x20 # 这里可以细化音高映射
         self._w(0x28 + ch, kc)
         self._w(0x30 + ch, 0x00)
-        self._w(0x08, 0x08 | ch) 
         
-        # 记录状态，虽然它不参与大逃杀，但保留状态以便调试
+        # 【核心】同时唤醒 M1 (物理 slot 0) 和 C2 (物理 slot 3)
+        # 所以 mask 是 0x08 | 0x01 = 0x09
+        self._w(0x08, 0x09 | ch) 
+        
         s = self.slots[ch]
         s.midi_ch, s.note, s.velocity = 9, note, velocity
         s.active, s.released, s.pending_off = True, False, False
