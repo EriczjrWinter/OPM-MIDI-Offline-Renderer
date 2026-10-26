@@ -55,6 +55,14 @@ This engine is not limited to `.opm` presets extracted from `NECOPN.DRV`. Valid 
 3. **Convert to OPM**: Open the `.wopn` file in OPN2-BE and export it as an `.opm` preset bank.
 4. **Render**: Run the Python engine and specify the converted `.opm` file via `--bank`.
 
+### 🔄 VGM Export Support
+In addition to rendering WAV files, this project includes a dedicated export tool, vgm_player.py, which allows you to export standard VGM (Video Game Music) files.
+
+1. **Why export to VGM?**: VGM files contain only the raw YM2151 register commands and timestamps, resulting in an incredibly small file size (e.g., a 4-minute track may be only a few dozen KB). You can play these files using modern VGM players (like Foobar2000 with the VGM plugin or VGMPlay), or even on real hardware setups.
+2. **How to use:**: Use vgm_player.py instead of player.py. The rest of the logic (voice banks, NECOPN voice-stealing, FM drums) is exactly the same as the WAV export.
+   bash
+python vgm_player.py "path/to/your.mid" --bank "NECOPN_GM.opm" -o "output.vgm"
+
 ###
 - **Hardware Quirks & Uncontrollable Artifacts:** Because this project uses Nuked OPM, it simulates the raw digital output of the YM2151 without modern DSP smoothing or built-in LPF. Dense MIDI events or high-feedback patches may produce harsh "zipper noise" or high-frequency aliasing. This is a genuine characteristic of the hardware, not a bug.
 - **Swapping the Core:** If you prefer a smoother, VST-like sound, the modular design allows you to replace the core. Refer to the encapsulation logic in `core.py` and implement the `ChipCore` abstract class to wrap another emulator (e.g., `fmgen`), then pass it to `driver.py`.
