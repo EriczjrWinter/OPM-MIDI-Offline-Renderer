@@ -58,10 +58,18 @@ midi	—	输入 MIDI 文件的路径。
 ### 🔄 与 WOPN 音色库的互操作性
 本引擎不仅限于从 `NECOPN.DRV` 中提取的 `.opm` 预设。为 `libOPNMIDI` 设计的有效 **`.wopn`（WOPN2-B2NK）** 银行在转换为 `.opm` 格式后，也可以被本引擎完美使用。
 
-1. **获取 WOPN 银行**：可在 [libOPNMIDI 仓库](https://github.com/Wohlstand/libOPNMIDI) 中找到各种乐器库。
+1. **获取 WOPN 音色库**：可在 [libOPNMIDI 仓库](https://github.com/Wohlstand/libOPNMIDI) 中找到各种乐器库。
 2. **获取 OPN2-BE**：下载 [OPN2BankEditor](https://github.com/Wohlstand/OPN2BankEditor) 的 **DEV（开发）版本**，以确保获得最新的 WOPN 解析和 OPM 导出支持。
 3. **转换为 OPM**：在 OPN2-BE 中打开 `.wopn` 文件，并导出为 `.opm` 预设音色库。
 4. **渲染**：运行 Python 引擎，并通过 `--bank` 指定转换后的 `.opm` 文件。
+
+### 🔄 VGM 导出支持
+除了渲染 WAV 格式外，本项目还提供了一个专用的导出工具：vgm_player.py，允许你将 MIDI 导出为标准的 VGM (Video Game Music) 格式。
+
+1. **为什么要导出为 VGM？**：VGM 文件仅记录原始的 YM2151 寄存器指令和时间戳，因此体积非常小（例如，一首 4 分钟的曲子可能只有几十 KB）。你可以使用现代 VGM 播放器（如安装了 VGM 插件的 Foobar2000 或 VGMPlay），甚至是在真实的硬件音源板上播放它们。
+2. **如何使用**：请使用 vgm_player.py 进行导出。除了输出格式不同外，其余的逻辑（音色库读取、NECOPN 大逃杀抢音、纯 FM 鼓组）与 WAV 导出完全一致，无任何区别。
+
+python vgm_player.py "你的文件.mid" --bank "NECOPN_GM.opm" -o "输出.vgm"
 
 ###
 - **硬件特性与不可控伪影：** 由于本项目使用 Nuked OPM，它模拟的是 YM2151 芯片的原始数字输出，没有现代 DSP 平滑或内置低通滤波器。因此，密集的 MIDI 事件或高反馈音色可能产生刺耳的"拉链噪声"或高频混叠。这是硬件的真实特性，而非 bug。
