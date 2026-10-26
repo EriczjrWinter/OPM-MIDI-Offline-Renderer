@@ -94,10 +94,20 @@ class OpmSystem:
         
         self.serial = 0
         self.time = 0.0
+        self.vgm_log = []      # 新增：记录 VGM 日志
+        self.trace_vgm = False # 新增：录制开关
         self._init_hardware()
 
     def _w(self, reg: int, val: int) -> None:
         self.core.write(reg, val)
+        
+        if self.trace_vgm:
+            # 【关键修改】：给 VGM 导出的 TL（音量）寄存器加一个安全偏置
+            out_val = val & 0xFF
+            if 0x60 <= (reg & 0xFF) <= 0x7F:
+                # 强制增加 8（相当于衰减 6dB），防止 VGM 播放器爆音
+                out_val = min(127, out_val + 8)
+            self.vgm_log.append((self.time, reg & 0xFF, out_val))
 
     def _init_hardware(self):
         for ch in range(self.n_ch):
