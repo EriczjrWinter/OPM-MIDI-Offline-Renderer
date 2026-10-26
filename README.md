@@ -60,7 +60,7 @@ In addition to rendering WAV files, this project includes a dedicated export too
 
 1. **Why export to VGM?**: VGM files contain only the raw YM2151 register commands and timestamps, resulting in an incredibly small file size (e.g., a 4-minute track may be only a few dozen KB). You can play these files using modern VGM players (like Foobar2000 with the VGM plugin or VGMPlay), or even on real hardware setups.
 2. **How to use:**: Use vgm_player.py instead of player.py. The rest of the logic (voice banks, NECOPN voice-stealing, FM drums) is exactly the same as the WAV export.
-   bash
+bash
 python vgm_player.py "path/to/your.mid" --bank "NECOPN_GM.opm" -o "output.vgm"
 
 ###
