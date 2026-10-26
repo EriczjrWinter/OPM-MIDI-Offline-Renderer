@@ -22,6 +22,18 @@ Since the YM2151 lacks ADPCM/sample playback, GM standard drum kits (Channel 10)
 **4. CC74 Brightness Control**
 Implements CC74 (Brightness) following Wohlstand's approach (libOPNMIDI): the Modulator's TL is adjusted dynamically to simulate a low-pass filter effect on the FM timbre.
 
+## Drum Kit Implementation & OPM Bank Limitations
+ A fundamental limitation of the standard .opm file format is that it natively supports only 128 melodic instruments. Historically, percussion on OPM chips was entirely synthesized or handled via external hardware. Therefore, standard .opm banks physically cannot contain a GM drum kit.
+
+To solve this and maintain authentic rhythm, this engine implements the drum kit through the following logic:
+
+**1. WOPN Backporting**: We extracted a professionally tuned GM percussion set from a standard WOPN bank.
+Hardcoded in Driver: Since .opm cannot store drums, these tuned parameters are hardcoded directly into driver.py as a dedicated dictionary (DRUM_BANK). This bypasses the .opm format limitation and prevents the performance overhead of dynamically loading patches for every drum hit.
+
+**2. Ch7 Dedication**: To preserve the 7 melodic channels for polyphony (via the NECOPN voice-stealing algorithm), the entire drum kit is locked to Physical Channel 7. This results in a "monophonic compromise" where overlapping drum notes (e.g., kick and hi-hat simultaneously) will cut each other off, faithfully replicating the physical constraints of vintage hardware.
+
+TIP:Legacy FM Noise Drums: The original handcrafted FM noise drum logic is retained in the code as a "legacy fallback." 
+
 ## 📦 Required Assets
 
 1. **Python 3.8+**
@@ -74,7 +86,8 @@ python vgm_player.py "path/to/your.mid" --bank "NECOPN_GM.opm" -o "output.vgm"
 - **CC74 Brightness:** Modulator TL adjustment following libOPNMIDI's implementation.
 
 ### 🙏 Credits & Disclaimer
-- Thanks to **Wohlstand** and **JP Cimalando** for implementing the foundational OPM bank export support in OPN2-BE, which made the WOPN-to-OPM cross-chip workflow possible.
+- **Credits & Sound Bank**
+OPN2-BE & WOPN Collections: Special thanks to Wohlstand and JP Cimalando for their foundational work on OPN2-BE (OPN2 Bank Editor). Their support for OPM bank exporting made the WOPN→OPM cross-chip workflow possible. More importantly, we deeply appreciate the high-quality WOPN instrument collections they curated, which made it possible to backport professionally tuned FM drums into this engine.
 - **Sound Bank (OPM Presets):** The `.opm` patches provided in this repo are dynamically extracted from the reverse-engineered `NECOPN.DRV`. Check out the extraction project here: https://github.com/EriczjrWinter/necopn-drv-reverse
 - **Emulation Core:** [Nuked-OPM](https://github.com/nukeykt/Nuked-OPM) by Nuke.YKT.
 - This project is for educational and preservation purposes only. All rights belong to their respective owners.
