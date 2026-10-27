@@ -75,6 +75,19 @@ In addition to rendering WAV files, this project includes a dedicated export too
 
 python vgm_player.py "path/to/your.mid" --bank "NECOPN_GM.opm" -o "output.vgm"
 
+### 🧪 Experimental: OPMMIDI-GAI (FM + PCM Dual-Core)
+Located in experimental/OPMMIDI-GAI/, this version is a technical Proof of Concept (PoC) inspired by the legendary Sharp X68000 hardware architecture and the Fujitsu EUPHONY driver (FM TOWNS).
+
+1. **The Concept**: Just like EUPHONY separated instruments into FMB (FM Bank) for melodies and PMB (PCM Bank) for percussion, this engine splits the workload. It pairs the Nuked-OPM core with a virtual PCM sample player, allowing the YM2151 to dedicate all 8 channels to FM melodies, while an external PCM core handles polyphonic drums.
+
+2. **No FM Drums**: The legacy hardcoded FM drum kit is completely removed in this version. All percussion is strictly handled by the PCM core.
+
+3. **Focus on WAV Rendering**: This experimental version is designed exclusively for WAV rendering. The VGM export feature was intentionally removed due to incomplete dual-chip data block implementation.
+
+4. **Requirements for Testing**: To hear the drums, users must provide their own OPNA RHY samples (named as 2608_BD.WAV, 2608_SD.WAV, etc., due to Yamaha copyright) and place them directly inside the experimental/OPMMIDI-GAI/ folder alongside its player.py.
+
+Note: This is an experimental branch and does not affect the main single-chip OPM engine.
+
 ###
 - **Hardware Quirks & Uncontrollable Artifacts:** Because this project uses Nuked OPM, it simulates the raw digital output of the YM2151 without modern DSP smoothing or built-in LPF. Dense MIDI events or high-feedback patches may produce harsh "zipper noise" or high-frequency aliasing. This is a genuine characteristic of the hardware, not a bug.
 - **Swapping the Core:** If you prefer a smoother, VST-like sound, the modular design allows you to replace the core. Refer to the encapsulation logic in `core.py` and implement the `ChipCore` abstract class to wrap another emulator (e.g., `fmgen`), then pass it to `driver.py`.
