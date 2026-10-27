@@ -18,22 +18,33 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_BANK = os.path.join(HERE, "NECOPN_GM.opm")
 
 
-def render(system: OpmSystem, core, events, total_sec: float,
-           sr: int, tail: float = 1.0, chunk_cap: int = 512) -> bytes:
+def render(system: OpmSystem, core, events, total_sec: float, sr: int, tail: float = 1.0, chunk_cap: int = 512) -> bytes:
     total_frames = int((total_sec + tail) * sr)
     out = bytearray()
     frames = 0
     ei = 0
-
-    # 调整 PCM 鼓的音量权重（0.0 ~ 1.0），防止鼓声完全盖住旋律
-    PCM_VOL = 0.45 
+    
+    # 基础音量权重
+    OPM_VOL = 1.0
+    PCM_VOL = 1.0
+    
+    # 侧链闪避状态
+    duck_env = 0.0  # 当前闪避包络(0.0~1.0)
+    DUCK_AMOUNT = 0.5  # 鼓声最大能压掉 OPM 多少音量 (0.5 代表压低 50%)
+    DUCK_DECAY = 0.005 # 闪避恢复的速度 (每帧恢复多少)
 
     while frames < total_frames:
         now = frames / sr
+        
+        # 1. 处理 MIDI 事件
         while ei < len(events) and events[ei].t <= now:
             e = events[ei]
             system.time = e.t
-            if   e.kind == "on":   system.note_on(e.ch, e.d1, e.d2)
+            if   e.kind == "on":   
+                system.note_on(e.ch, e.d1, e.d2)
+                # 【触发侧链】：如果是鼓（通道 9），瞬间拉满闪避包络
+                if e.ch == 9:
+                    duck_env = 1.0
             elif e.kind == "off":  system.note_off(e.ch, e.d1)
             elif e.kind == "cc":   system.control_change(e.ch, e.d1, e.d2)
             elif e.kind == "prog": system.program_change(e.ch, e.d1)
@@ -42,35 +53,38 @@ def render(system: OpmSystem, core, events, total_sec: float,
 
         n = min(chunk_cap, total_frames - frames)
         
-        # 1. 获取 OPM 输出 (Nuked OPM 核心)
         raw_opm = core.generate(n)
         opm_array = struct.unpack("<%dh" % (2 * n), raw_opm)
+        pcm_array = system.pcm.generate(n) 
         
-        # 2. 获取 PCM 输出 (我们的模拟芯片)
-        pcm_array = system.pcm.generate(n) # 这是一维的 array('h')，长度是 n
-        
-        # 3. 混合音频
         scaled = []
         for i in range(n):
-            # OPM 是立体声（L, R 交错），PCM 是单声道
+            # 获取原始音频
             l = opm_array[i * 2]
             r = opm_array[i * 2 + 1]
+            pcm_l = pcm_array[i]
             
-            # 把 PCM 乘以音量权重后，同时加到左右声道
-            pcm_l = int(pcm_array[i] * PCM_VOL)
+            # 【核心魔法】：根据闪避包络，动态缩放 OPM 的音量
+            # 当 duck_env = 1.0 时，OPM 音量乘以 0.5 (压低一半)
+            # 当 duck_env = 0.0 时，OPM 音量乘以 1.0 (恢复原样)
+            current_opm_vol = OPM_VOL * (1.0 - (duck_env * DUCK_AMOUNT))
             
-            l += pcm_l
-            r += pcm_l
+            final_l = int(l * current_opm_vol + pcm_l * PCM_VOL)
+            final_r = int(r * current_opm_vol + pcm_l * PCM_VOL)
             
-            # 4. 降增益与安全限幅 (防止混音后爆音)
-            l = l >> 1
-            r = r >> 1
+            # 防爆音限幅
+            final_l = max(-32767, min(32767, final_l))
+            final_r = max(-32767, min(32767, final_r))
             
-            scaled.append(max(-32767, min(32767, l)))
-            scaled.append(max(-32767, min(32767, r)))
+            scaled.append(final_l)
+            scaled.append(final_r)
+            
+            # 包络衰减（让被压低的 OPM 音量平滑恢复）
+            if duck_env > 0:
+                duck_env -= DUCK_DECAY
+                if duck_env < 0: duck_env = 0.0
             
         out += struct.pack("<%dh" % (2 * n), *scaled)
-        
         system.advance_time(n / sr)
         frames += n
 

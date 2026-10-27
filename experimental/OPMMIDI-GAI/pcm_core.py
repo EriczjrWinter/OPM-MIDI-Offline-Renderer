@@ -15,8 +15,10 @@ class PcmVoice:
 class PcmCore:
     def __init__(self, sample_rate=55930):
         self.sr = sample_rate
-        self.samples = {}     # 按名称存储: 'BD' -> array('h')
+        self.samples = {}
         self.active_voices = []
+        self.tune = 1.0
+        self.gain = 2.0  # 【新增】：全局音量增益，2.0 等于翻倍
 
     def load_sample(self, name: str, path: str):
         """加载 RHY 采样，并预重采样到 OPM 的目标采样率"""
@@ -56,6 +58,14 @@ class PcmCore:
                 
             self.samples[name] = data
             print(f"[PcmCore] 已加载采样: {name} ({len(data)} frames)")
+
+    def play_drum(self, name: str, velocity: int):
+        if name not in self.samples: return
+        smp = self.samples[name]
+        # 【修改】：乘上全局增益，并且把力度曲线改得稍微平缓一点
+        vol = ((velocity / 127.0) ** 1.0) * self.gain 
+        voice = PcmVoice(smp['data'], 1.0, vol)
+        self.active_voices.append(voice)
 
     def play(self, name: str, velocity: int):
         """触发指定名称的鼓声"""
