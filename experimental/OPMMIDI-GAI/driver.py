@@ -19,6 +19,479 @@ RHY_MAP = {
     # 如果有需要，可以继续加其他的，比如 56 (Cowbell) 映射到 RIM 之类的
 }
 
+DRUM_BANK = {
+    # Note 35:
+    35: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 3, 'tl': 24, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 17, 'sl': 0, 'rr': 8},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 17, 'sl': 0, 'rr': 8},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 17, 'sl': 0, 'rr': 8},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 17, 'sl': 0, 'rr': 8},
+        ]
+    },
+    # Note 36:
+    36: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 3, 'tl': 24, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 15, 'sl': 0, 'rr': 7},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 15, 'sl': 0, 'rr': 7},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 15, 'sl': 0, 'rr': 7},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 15, 'sl': 0, 'rr': 7},
+        ]
+    },
+    # Note 37:
+    37: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 3, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 19, 'sl': 0, 'rr': 9},
+            {'dt': 0, 'mul': 2, 'tl': 4, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 19, 'sl': 0, 'rr': 9},
+            {'dt': 0, 'mul': 1, 'tl': 127, 'ks': 0, 'ar': 31, 'dr': 31, 'sr': 31, 'sl': 0, 'rr': 15},
+            {'dt': 0, 'mul': 1, 'tl': 127, 'ks': 0, 'ar': 31, 'dr': 31, 'sr': 31, 'sl': 0, 'rr': 15},
+        ]
+    },
+    # Note 38:
+    38: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 15, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 0, 'sl': 0, 'rr': 0},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 24, 'sr': 17, 'sl': 0, 'rr': 8},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 24, 'sr': 17, 'sl': 0, 'rr': 8},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 24, 'sr': 17, 'sl': 0, 'rr': 8},
+        ]
+    },
+    # Note 39:
+    39: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 15, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 0, 'sl': 0, 'rr': 0},
+            {'dt': 1, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 19, 'sl': 0, 'rr': 9},
+            {'dt': 2, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 19, 'sl': 0, 'rr': 9},
+            {'dt': 3, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 19, 'sl': 0, 'rr': 9},
+        ]
+    },
+    # Note 40:
+    40: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 15, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 0, 'sl': 0, 'rr': 0},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 19, 'sl': 0, 'rr': 9},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 19, 'sl': 0, 'rr': 9},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 19, 'sl': 0, 'rr': 9},
+        ]
+    },
+    # Note 41:
+    41: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 3, 'tl': 24, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 15, 'sl': 0, 'rr': 7},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 15, 'sl': 0, 'rr': 7},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 15, 'sl': 0, 'rr': 7},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 15, 'sl': 0, 'rr': 7},
+        ]
+    },
+    # Note 42:
+    42: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 2, 'tl': 14, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 0, 'sl': 0, 'rr': 0},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 21, 'sl': 0, 'rr': 10},
+            {'dt': 0, 'mul': 1, 'tl': 127, 'ks': 0, 'ar': 31, 'dr': 31, 'sr': 31, 'sl': 0, 'rr': 15},
+            {'dt': 0, 'mul': 1, 'tl': 127, 'ks': 0, 'ar': 31, 'dr': 31, 'sr': 31, 'sl': 0, 'rr': 15},
+        ]
+    },
+    # Note 43:
+    43: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 3, 'tl': 24, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 15, 'sl': 0, 'rr': 7},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 15, 'sl': 0, 'rr': 7},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 15, 'sl': 0, 'rr': 7},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 15, 'sl': 0, 'rr': 7},
+        ]
+    },
+    # Note 44:
+    44: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 2, 'tl': 14, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 0, 'sl': 0, 'rr': 0},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 21, 'sl': 0, 'rr': 10},
+            {'dt': 0, 'mul': 1, 'tl': 127, 'ks': 0, 'ar': 31, 'dr': 31, 'sr': 31, 'sl': 0, 'rr': 15},
+            {'dt': 0, 'mul': 1, 'tl': 127, 'ks': 0, 'ar': 31, 'dr': 31, 'sr': 31, 'sl': 0, 'rr': 15},
+        ]
+    },
+    # Note 45:
+    45: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 3, 'tl': 24, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 15, 'sl': 0, 'rr': 7},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 15, 'sl': 0, 'rr': 7},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 15, 'sl': 0, 'rr': 7},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 15, 'sl': 0, 'rr': 7},
+        ]
+    },
+    # Note 46:
+    46: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 2, 'tl': 14, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 0, 'sl': 0, 'rr': 0},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 13, 'sl': 0, 'rr': 6},
+            {'dt': 0, 'mul': 1, 'tl': 127, 'ks': 0, 'ar': 31, 'dr': 31, 'sr': 31, 'sl': 0, 'rr': 15},
+            {'dt': 0, 'mul': 1, 'tl': 127, 'ks': 0, 'ar': 31, 'dr': 31, 'sr': 31, 'sl': 0, 'rr': 15},
+        ]
+    },
+    # Note 47:
+    47: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 3, 'tl': 24, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 15, 'sl': 0, 'rr': 7},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 15, 'sl': 0, 'rr': 7},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 15, 'sl': 0, 'rr': 7},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 15, 'sl': 0, 'rr': 7},
+        ]
+    },
+    # Note 48:
+    48: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 3, 'tl': 24, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 15, 'sl': 0, 'rr': 7},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 15, 'sl': 0, 'rr': 7},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 15, 'sl': 0, 'rr': 7},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 15, 'sl': 0, 'rr': 7},
+        ]
+    },
+    # Note 49: Crash (Animatics)
+    49: {
+        'alg': 0, 'fb': 2,
+        'operators': [
+            {'dt': 7, 'mul': 15, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 11, 'sr': 0, 'sl': 4, 'rr': 0},
+            {'dt': 1, 'mul': 3, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 11, 'sr': 0, 'sl': 15, 'rr': 6},
+            {'dt': 7, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 22, 'sr': 7, 'sl': 3, 'rr': 4},
+            {'dt': 0, 'mul': 7, 'tl': 0, 'ks': 2, 'ar': 31, 'dr': 27, 'sr': 7, 'sl': 10, 'rr': 6},
+        ]
+    },
+    # Note 50:
+    50: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 3, 'tl': 24, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 15, 'sl': 0, 'rr': 7},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 15, 'sl': 0, 'rr': 7},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 15, 'sl': 0, 'rr': 7},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 15, 'sl': 0, 'rr': 7},
+        ]
+    },
+    # Note 51: RideCymbell1
+    51: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 12, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 13, 'sr': 0, 'sl': 1, 'rr': 0},
+            {'dt': 0, 'mul': 3, 'tl': 12, 'ks': 0, 'ar': 24, 'dr': 21, 'sr': 7, 'sl': 4, 'rr': 4},
+            {'dt': 0, 'mul': 0, 'tl': 127, 'ks': 0, 'ar': 0, 'dr': 0, 'sr': 0, 'sl': 0, 'rr': 0},
+            {'dt': 0, 'mul': 0, 'tl': 127, 'ks': 0, 'ar': 0, 'dr': 0, 'sr': 0, 'sl': 0, 'rr': 0},
+        ]
+    },
+    # Note 52: Chinese Crash (Animatics)
+    52: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 7, 'mul': 15, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 7, 'sr': 0, 'sl': 5, 'rr': 2},
+            {'dt': 1, 'mul': 3, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 12, 'sr': 4, 'sl': 8, 'rr': 4},
+            {'dt': 7, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 21, 'sr': 6, 'sl': 3, 'rr': 3},
+            {'dt': 0, 'mul': 7, 'tl': 0, 'ks': 2, 'ar': 31, 'dr': 25, 'sr': 6, 'sl': 10, 'rr': 3},
+        ]
+    },
+    # Note 53: Ride Bell
+    53: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 13, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 7, 'sr': 7, 'sl': 14, 'rr': 1},
+            {'dt': 0, 'mul': 13, 'tl': 17, 'ks': 0, 'ar': 31, 'dr': 10, 'sr': 18, 'sl': 14, 'rr': 5},
+            {'dt': 0, 'mul': 0, 'tl': 127, 'ks': 0, 'ar': 0, 'dr': 0, 'sr': 0, 'sl': 0, 'rr': 0},
+            {'dt': 0, 'mul': 0, 'tl': 127, 'ks': 0, 'ar': 0, 'dr': 0, 'sr': 0, 'sl': 0, 'rr': 0},
+        ]
+    },
+    # Note 54:
+    54: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 2, 'tl': 14, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 0, 'sl': 0, 'rr': 0},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 16, 'sl': 0, 'rr': 7},
+            {'dt': 0, 'mul': 1, 'tl': 127, 'ks': 0, 'ar': 31, 'dr': 31, 'sr': 31, 'sl': 0, 'rr': 15},
+            {'dt': 0, 'mul': 1, 'tl': 127, 'ks': 0, 'ar': 31, 'dr': 31, 'sr': 31, 'sl': 0, 'rr': 7},
+        ]
+    },
+    # Note 55: Splash Crash (Animatics)
+    55: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 7, 'mul': 15, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 5, 'sr': 6, 'sl': 5, 'rr': 0},
+            {'dt': 1, 'mul': 3, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 11, 'sr': 4, 'sl': 8, 'rr': 5},
+            {'dt': 7, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 21, 'sr': 6, 'sl': 3, 'rr': 3},
+            {'dt': 0, 'mul': 7, 'tl': 0, 'ks': 2, 'ar': 31, 'dr': 26, 'sr': 6, 'sl': 10, 'rr': 5},
+        ]
+    },
+    # Note 56:
+    56: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 3, 'tl': 26, 'ks': 0, 'ar': 31, 'dr': 19, 'sr': 19, 'sl': 0, 'rr': 11},
+            {'dt': 0, 'mul': 2, 'tl': 4, 'ks': 0, 'ar': 31, 'dr': 12, 'sr': 16, 'sl': 0, 'rr': 8},
+            {'dt': 0, 'mul': 1, 'tl': 127, 'ks': 0, 'ar': 31, 'dr': 31, 'sr': 24, 'sl': 0, 'rr': 3},
+            {'dt': 0, 'mul': 1, 'tl': 127, 'ks': 0, 'ar': 31, 'dr': 20, 'sr': 12, 'sl': 4, 'rr': 15},
+        ]
+    },
+    # Note 57:
+    57: {
+        'alg': 0, 'fb': 6,
+        'operators': [
+            {'dt': 0, 'mul': 8, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 0, 'sl': 0, 'rr': 0},
+            {'dt': 0, 'mul': 2, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 20, 'sr': 11, 'sl': 1, 'rr': 5},
+            {'dt': 0, 'mul': 3, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 20, 'sr': 11, 'sl': 2, 'rr': 5},
+            {'dt': 0, 'mul': 5, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 20, 'sr': 11, 'sl': 3, 'rr': 5},
+        ]
+    },
+    # Note 58: VibeSlap
+    58: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 0, 'tl': 8, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 0, 'sl': 0, 'rr': 0},
+            {'dt': 0, 'mul': 0, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 10, 'sr': 0, 'sl': 15, 'rr': 5},
+            {'dt': 0, 'mul': 0, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 5, 'sr': 0, 'sl': 0, 'rr': 0},
+            {'dt': 0, 'mul': 0, 'tl': 21, 'ks': 0, 'ar': 31, 'dr': 10, 'sr': 0, 'sl': 15, 'rr': 5},
+        ]
+    },
+    # Note 59: RideCymbell2
+    59: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 12, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 12, 'sr': 0, 'sl': 1, 'rr': 0},
+            {'dt': 0, 'mul': 3, 'tl': 11, 'ks': 0, 'ar': 24, 'dr': 20, 'sr': 8, 'sl': 4, 'rr': 4},
+            {'dt': 0, 'mul': 0, 'tl': 127, 'ks': 0, 'ar': 0, 'dr': 0, 'sr': 0, 'sl': 0, 'rr': 0},
+            {'dt': 0, 'mul': 0, 'tl': 127, 'ks': 0, 'ar': 0, 'dr': 0, 'sr': 0, 'sl': 0, 'rr': 0},
+        ]
+    },
+    # Note 60: HiBo
+    60: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 1, 'tl': 5, 'ks': 2, 'ar': 28, 'dr': 15, 'sr': 0, 'sl': 15, 'rr': 9},
+            {'dt': 0, 'mul': 0, 'tl': 0, 'ks': 2, 'ar': 28, 'dr': 20, 'sr': 0, 'sl': 15, 'rr': 9},
+            {'dt': 7, 'mul': 2, 'tl': 0, 'ks': 0, 'ar': 23, 'dr': 18, 'sr': 10, 'sl': 15, 'rr': 9},
+            {'dt': 3, 'mul': 3, 'tl': 4, 'ks': 0, 'ar': 18, 'dr': 18, 'sr': 10, 'sl': 15, 'rr': 9},
+        ]
+    },
+    # Note 61: LoBo
+    61: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 1, 'tl': 5, 'ks': 2, 'ar': 28, 'dr': 15, 'sr': 0, 'sl': 15, 'rr': 9},
+            {'dt': 0, 'mul': 0, 'tl': 0, 'ks': 2, 'ar': 28, 'dr': 20, 'sr': 0, 'sl': 15, 'rr': 9},
+            {'dt': 7, 'mul': 2, 'tl': 0, 'ks': 0, 'ar': 23, 'dr': 18, 'sr': 10, 'sl': 15, 'rr': 9},
+            {'dt': 3, 'mul': 3, 'tl': 4, 'ks': 0, 'ar': 18, 'dr': 18, 'sr': 10, 'sl': 15, 'rr': 9},
+        ]
+    },
+    # Note 62: MuHiCo
+    62: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 1, 'tl': 7, 'ks': 2, 'ar': 31, 'dr': 15, 'sr': 0, 'sl': 15, 'rr': 9},
+            {'dt': 0, 'mul': 1, 'tl': 0, 'ks': 2, 'ar': 31, 'dr': 18, 'sr': 0, 'sl': 15, 'rr': 9},
+            {'dt': 7, 'mul': 2, 'tl': 0, 'ks': 0, 'ar': 30, 'dr': 18, 'sr': 10, 'sl': 15, 'rr': 9},
+            {'dt': 1, 'mul': 2, 'tl': 0, 'ks': 0, 'ar': 18, 'dr': 22, 'sr': 10, 'sl': 15, 'rr': 10},
+        ]
+    },
+    # Note 63: OpHiCo
+    63: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 1, 'tl': 5, 'ks': 2, 'ar': 28, 'dr': 15, 'sr': 0, 'sl': 15, 'rr': 9},
+            {'dt': 0, 'mul': 0, 'tl': 0, 'ks': 2, 'ar': 28, 'dr': 23, 'sr': 0, 'sl': 15, 'rr': 10},
+            {'dt': 7, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 23, 'dr': 20, 'sr': 12, 'sl': 15, 'rr': 11},
+            {'dt': 1, 'mul': 1, 'tl': 0, 'ks': 0, 'ar': 18, 'dr': 16, 'sr': 12, 'sl': 15, 'rr': 8},
+        ]
+    },
+    # Note 64: LowCo
+    64: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 1, 'tl': 5, 'ks': 2, 'ar': 28, 'dr': 15, 'sr': 0, 'sl': 15, 'rr': 9},
+            {'dt': 0, 'mul': 0, 'tl': 0, 'ks': 2, 'ar': 28, 'dr': 22, 'sr': 0, 'sl': 15, 'rr': 10},
+            {'dt': 7, 'mul': 2, 'tl': 13, 'ks': 0, 'ar': 23, 'dr': 20, 'sr': 10, 'sl': 15, 'rr': 9},
+            {'dt': 3, 'mul': 1, 'tl': 6, 'ks': 0, 'ar': 18, 'dr': 15, 'sr': 10, 'sl': 15, 'rr': 8},
+        ]
+    },
+    # Note 65: immons
+    65: {
+        'alg': 5, 'fb': 0,
+        'operators': [
+            {'dt': 1, 'mul': 3, 'tl': 8, 'ks': 2, 'ar': 31, 'dr': 25, 'sr': 8, 'sl': 12, 'rr': 10},
+            {'dt': 3, 'mul': 6, 'tl': 5, 'ks': 1, 'ar': 31, 'dr': 25, 'sr': 6, 'sl': 10, 'rr': 12},
+            {'dt': 0, 'mul': 0, 'tl': 13, 'ks': 1, 'ar': 31, 'dr': 19, 'sr': 5, 'sl': 11, 'rr': 12},
+            {'dt': 0, 'mul': 2, 'tl': 6, 'ks': 1, 'ar': 31, 'dr': 15, 'sr': 17, 'sl': 8, 'rr': 12},
+        ]
+    },
+    # Note 66: immons
+    66: {
+        'alg': 5, 'fb': 0,
+        'operators': [
+            {'dt': 1, 'mul': 3, 'tl': 8, 'ks': 2, 'ar': 31, 'dr': 25, 'sr': 8, 'sl': 12, 'rr': 10},
+            {'dt': 3, 'mul': 6, 'tl': 5, 'ks': 1, 'ar': 31, 'dr': 25, 'sr': 6, 'sl': 10, 'rr': 12},
+            {'dt': 0, 'mul': 0, 'tl': 13, 'ks': 1, 'ar': 31, 'dr': 19, 'sr': 5, 'sl': 11, 'rr': 12},
+            {'dt': 0, 'mul': 2, 'tl': 6, 'ks': 1, 'ar': 31, 'dr': 15, 'sr': 17, 'sl': 8, 'rr': 12},
+        ]
+    },
+    # Note 67: HiAgogo
+    67: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 3, 'mul': 14, 'tl': 23, 'ks': 2, 'ar': 31, 'dr': 9, 'sr': 9, 'sl': 8, 'rr': 6},
+            {'dt': 3, 'mul': 4, 'tl': 0, 'ks': 1, 'ar': 20, 'dr': 16, 'sr': 17, 'sl': 10, 'rr': 8},
+            {'dt': 0, 'mul': 14, 'tl': 24, 'ks': 2, 'ar': 31, 'dr': 9, 'sr': 9, 'sl': 8, 'rr': 6},
+            {'dt': 0, 'mul': 4, 'tl': 0, 'ks': 1, 'ar': 20, 'dr': 16, 'sr': 17, 'sl': 10, 'rr': 8},
+        ]
+    },
+    # Note 68: LoAgogo
+    68: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 3, 'mul': 14, 'tl': 26, 'ks': 2, 'ar': 31, 'dr': 9, 'sr': 9, 'sl': 8, 'rr': 6},
+            {'dt': 3, 'mul': 4, 'tl': 0, 'ks': 1, 'ar': 23, 'dr': 16, 'sr': 17, 'sl': 10, 'rr': 8},
+            {'dt': 0, 'mul': 14, 'tl': 24, 'ks': 2, 'ar': 31, 'dr': 9, 'sr': 9, 'sl': 8, 'rr': 6},
+            {'dt': 0, 'mul': 4, 'tl': 0, 'ks': 0, 'ar': 21, 'dr': 16, 'sr': 17, 'sl': 10, 'rr': 8},
+        ]
+    },
+    # Note 69: Cabasa
+    69: {
+        'alg': 5, 'fb': 6,
+        'operators': [
+            {'dt': 2, 'mul': 15, 'tl': 6, 'ks': 1, 'ar': 31, 'dr': 5, 'sr': 2, 'sl': 8, 'rr': 1},
+            {'dt': 0, 'mul': 15, 'tl': 1, 'ks': 2, 'ar': 31, 'dr': 5, 'sr': 2, 'sl': 5, 'rr': 3},
+            {'dt': 7, 'mul': 13, 'tl': 2, 'ks': 2, 'ar': 25, 'dr': 5, 'sr': 2, 'sl': 7, 'rr': 1},
+            {'dt': 3, 'mul': 3, 'tl': 0, 'ks': 2, 'ar': 13, 'dr': 17, 'sr': 11, 'sl': 10, 'rr': 9},
+        ]
+    },
+    # Note 70: Maracas
+    70: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 15, 'tl': 0, 'ks': 1, 'ar': 24, 'dr': 14, 'sr': 24, 'sl': 4, 'rr': 9},
+            {'dt': 0, 'mul': 2, 'tl': 0, 'ks': 2, 'ar': 14, 'dr': 22, 'sr': 25, 'sl': 8, 'rr': 13},
+            {'dt': 0, 'mul': 15, 'tl': 0, 'ks': 3, 'ar': 24, 'dr': 16, 'sr': 18, 'sl': 4, 'rr': 9},
+            {'dt': 0, 'mul': 15, 'tl': 31, 'ks': 0, 'ar': 18, 'dr': 18, 'sr': 18, 'sl': 6, 'rr': 9},
+        ]
+    },
+    # Note 71: ShortWhistle
+    71: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 0, 'tl': 37, 'ks': 0, 'ar': 18, 'dr': 10, 'sr': 0, 'sl': 0, 'rr': 11},
+            {'dt': 0, 'mul': 14, 'tl': 0, 'ks': 0, 'ar': 18, 'dr': 11, 'sr': 22, 'sl': 2, 'rr': 11},
+            {'dt': 0, 'mul': 0, 'tl': 127, 'ks': 0, 'ar': 0, 'dr': 0, 'sr': 0, 'sl': 15, 'rr': 0},
+            {'dt': 0, 'mul': 0, 'tl': 127, 'ks': 0, 'ar': 0, 'dr': 0, 'sr': 0, 'sl': 15, 'rr': 0},
+        ]
+    },
+    # Note 72: LongWhistle
+    72: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 0, 'tl': 37, 'ks': 0, 'ar': 18, 'dr': 10, 'sr': 0, 'sl': 0, 'rr': 11},
+            {'dt': 0, 'mul': 14, 'tl': 0, 'ks': 0, 'ar': 18, 'dr': 8, 'sr': 22, 'sl': 2, 'rr': 11},
+            {'dt': 0, 'mul': 0, 'tl': 127, 'ks': 0, 'ar': 0, 'dr': 0, 'sr': 0, 'sl': 15, 'rr': 0},
+            {'dt': 0, 'mul': 0, 'tl': 127, 'ks': 0, 'ar': 0, 'dr': 0, 'sr': 0, 'sl': 15, 'rr': 0},
+        ]
+    },
+    # Note 73: Short Guiro
+    73: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 0, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 11, 'sr': 10, 'sl': 0, 'rr': 6},
+            {'dt': 0, 'mul': 0, 'tl': 2, 'ks': 0, 'ar': 15, 'dr': 14, 'sr': 16, 'sl': 1, 'rr': 8},
+            {'dt': 0, 'mul': 0, 'tl': 127, 'ks': 0, 'ar': 0, 'dr': 0, 'sr': 0, 'sl': 0, 'rr': 0},
+            {'dt': 0, 'mul': 0, 'tl': 127, 'ks': 0, 'ar': 0, 'dr': 0, 'sr': 0, 'sl': 0, 'rr': 0},
+        ]
+    },
+    # Note 74: Long Guiro
+    74: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 0, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 9, 'sr': 9, 'sl': 0, 'rr': 6},
+            {'dt': 0, 'mul': 0, 'tl': 7, 'ks': 0, 'ar': 12, 'dr': 14, 'sr': 16, 'sl': 1, 'rr': 8},
+            {'dt': 0, 'mul': 0, 'tl': 127, 'ks': 0, 'ar': 0, 'dr': 0, 'sr': 0, 'sl': 0, 'rr': 0},
+            {'dt': 0, 'mul': 0, 'tl': 127, 'ks': 0, 'ar': 0, 'dr': 0, 'sr': 0, 'sl': 0, 'rr': 0},
+        ]
+    },
+    # Note 75:
+    75: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 5, 'tl': 22, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 0, 'sl': 0, 'rr': 0},
+            {'dt': 0, 'mul': 2, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 21, 'sl': 0, 'rr': 10},
+            {'dt': 0, 'mul': 5, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 21, 'sl': 0, 'rr': 10},
+            {'dt': 0, 'mul': 7, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 21, 'sl': 0, 'rr': 10},
+        ]
+    },
+    # Note 76:
+    76: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 5, 'tl': 24, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 0, 'sl': 0, 'rr': 0},
+            {'dt': 0, 'mul': 2, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 21, 'sl': 0, 'rr': 10},
+            {'dt': 0, 'mul': 5, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 21, 'sl': 0, 'rr': 10},
+            {'dt': 0, 'mul': 7, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 21, 'sl': 0, 'rr': 10},
+        ]
+    },
+    # Note 77:
+    77: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 5, 'tl': 24, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 0, 'sl': 0, 'rr': 0},
+            {'dt': 0, 'mul': 2, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 21, 'sl': 0, 'rr': 10},
+            {'dt': 0, 'mul': 5, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 21, 'sl': 0, 'rr': 10},
+            {'dt': 0, 'mul': 7, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 21, 'sl': 0, 'rr': 10},
+        ]
+    },
+    # Note 78: Mute Cuika
+    78: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 7, 'mul': 2, 'tl': 39, 'ks': 0, 'ar': 12, 'dr': 15, 'sr': 15, 'sl': 0, 'rr': 7},
+            {'dt': 7, 'mul': 8, 'tl': 0, 'ks': 1, 'ar': 14, 'dr': 6, 'sr': 17, 'sl': 0, 'rr': 6},
+            {'dt': 0, 'mul': 1, 'tl': 27, 'ks': 0, 'ar': 12, 'dr': 15, 'sr': 15, 'sl': 0, 'rr': 7},
+            {'dt': 0, 'mul': 8, 'tl': 0, 'ks': 2, 'ar': 14, 'dr': 6, 'sr': 17, 'sl': 0, 'rr': 6},
+        ]
+    },
+    # Note 79: Open Cuika
+    79: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 1, 'tl': 38, 'ks': 0, 'ar': 12, 'dr': 15, 'sr': 15, 'sl': 0, 'rr': 7},
+            {'dt': 0, 'mul': 4, 'tl': 0, 'ks': 0, 'ar': 14, 'dr': 6, 'sr': 17, 'sl': 0, 'rr': 6},
+            {'dt': 0, 'mul': 1, 'tl': 30, 'ks': 0, 'ar': 12, 'dr': 0, 'sr': 0, 'sl': 0, 'rr': 7},
+            {'dt': 0, 'mul': 1, 'tl': 23, 'ks': 0, 'ar': 14, 'dr': 15, 'sr': 14, 'sl': 11, 'rr': 6},
+        ]
+    },
+    # Note 80: MuteTriangle
+    80: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 3, 'tl': 26, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 0, 'sl': 8, 'rr': 0},
+            {'dt': 0, 'mul': 2, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 15, 'sr': 13, 'sl': 8, 'rr': 11},
+            {'dt': 0, 'mul': 0, 'tl': 127, 'ks': 0, 'ar': 0, 'dr': 0, 'sr': 0, 'sl': 0, 'rr': 0},
+            {'dt': 0, 'mul': 0, 'tl': 127, 'ks': 0, 'ar': 0, 'dr': 0, 'sr': 0, 'sl': 0, 'rr': 0},
+        ]
+    },
+    # Note 81: OpenTriangle
+    81: {
+        'alg': 0, 'fb': 0,
+        'operators': [
+            {'dt': 0, 'mul': 3, 'tl': 26, 'ks': 0, 'ar': 31, 'dr': 0, 'sr': 0, 'sl': 8, 'rr': 0},
+            {'dt': 0, 'mul': 2, 'tl': 0, 'ks': 0, 'ar': 31, 'dr': 8, 'sr': 8, 'sl': 8, 'rr': 5},
+            {'dt': 0, 'mul': 0, 'tl': 127, 'ks': 0, 'ar': 0, 'dr': 0, 'sr': 0, 'sl': 0, 'rr': 0},
+            {'dt': 0, 'mul': 0, 'tl': 127, 'ks': 0, 'ar': 0, 'dr': 0, 'sr': 0, 'sl': 0, 'rr': 0},
+        ]
+    },
+}
+
 # 正确的 OPM 硬件音阶表
 KTBL = [1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 15]
 
@@ -60,7 +533,7 @@ FM_DRUMS = {
     51: (0x7F, 0x00, 0x07, 0x01, 0x1F, 0x00, 0x12, 0x1F, True, 0x1C),
 }
 
-
+PCM_RHY_PRIORITY = {35, 36, 38, 39, 40, 42, 44, 46}
 
 def _pan_bits(pan: int) -> int:
     if pan < 32:
@@ -265,15 +738,72 @@ class OpmSystem:
         s.release_time = self.time
 
     def _play_drum(self, note: int, velocity: int) -> None:
-        # 查找映射表
-        rhy_name = RHY_MAP.get(note)
-        if rhy_name:
-            # 直接交给 PCM 芯片，完全不占用 OPM 的物理通道！
-            self.pcm.play(rhy_name, velocity)
-            # 【新增】：如果是导出 VGM 模式，记录 PCM 触发事件
-            if getattr(self, 'trace_vgm', False):
-                # 记录：时间、采样名称、力度
-                self.vgm_pcm_log.append((self.time, rhy_name, velocity))
+        """混合打击乐：核心高频鼓交给PCM，特色鼓还给FM (Ch7)"""
+        
+        # 1. 检查是否属于高频核心鼓，且我们有对应的 PCM 采样
+        if note in PCM_RHY_PRIORITY and hasattr(self, 'pcm'):
+            rhy_name = RHY_MAP.get(note)
+            if rhy_name and rhy_name in self.pcm.samples:
+                # 路线 A：交给虚拟 PCM 芯片（解决复音吞音）
+                self.pcm.play(rhy_name, velocity)
+                return  # 直接返回，完全不碰 FM 通道
+                
+        # 2. 剩下的（通鼓、镲片、木鱼、甚至 PCM 没采样的）全部交给 FM (Ch7)
+        if note not in DRUM_BANK:
+            return  # 字典里也没有，只能丢弃
+            
+        ch = self.drum_ch
+        drum_data = DRUM_BANK[note]
+        
+        if isinstance(drum_data, tuple):
+            alg, fb, op0, op1, op2, op3 = drum_data
+            operators = [op0, op1, op2, op3]
+        else:
+            alg = drum_data['alg']
+            fb = drum_data['fb']
+            operators = drum_data['operators']
+            
+        self._w(0x08, ch)
+        
+        # 限制反馈防爆音
+        safe_fb = min(fb, 6) 
+        self._w(0x20 + ch, 0xC0 | (safe_fb << 3) | (alg & 7))
+        
+        vel_atten = (127 - velocity) >> 2
+        
+        for i, op in enumerate(operators):
+            base = VOPM_OP_REG[i] * 8 + ch
+            
+            if isinstance(op, tuple):
+                dt1, mul, tl, ks, ar, dr, sr, sl, rr = op
+            else:
+                dt1 = op.get('dt1', op.get('dt', 0))
+                mul, tl, ks, ar, dr, sr, sl, rr = op['mul'], op['tl'], op['ks'], op['ar'], op['dr'], op['sr'], op['sl'], op['rr']
+            
+            op_tl = min(127, tl + vel_atten)
+            
+            self._w(0x40 + base, ((dt1 & 7) << 4) | (mul & 0x0F))
+            self._w(0x60 + base, op_tl & 0x7F)
+            self._w(0x80 + base, ((ks & 3) << 6) | (ar & 0x1F))
+            
+            # 鼓包络不翻译，保持干脆
+            self._w(0xA0 + base, dr & 0x1F) 
+            self._w(0xC0 + base, sr & 0x1F) 
+            self._w(0xE0 + base, ((sl & 0x0F) << 4) | (rr & 0x0F))
+            
+        # 降 1 个八度，保留鼓的腔体感
+        octave = (note // 12) - 1 
+        octave = max(0, min(7, octave)) 
+        kc = (octave << 4) | KTBL[note % 12]
+        self._w(0x28 + ch, kc & 0x7F)
+        self._w(0x30 + ch, 0x00)
+        self._w(0x08, 0x78 | ch)
+
+        # 记录状态
+        s = self.slots[ch]
+        s.midi_ch, s.note, s.velocity = 9, note, velocity
+        s.active, s.released, s.pending_off = True, False, False
+        s.start_time = self.time
 
     def note_on(self, midi_ch: int, note: int, velocity: int) -> None:
         midi_ch &= 0x0F
