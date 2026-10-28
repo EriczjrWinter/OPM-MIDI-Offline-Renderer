@@ -4,6 +4,7 @@ import math
 from dataclasses import dataclass
 from core import ChipCore
 from voice import OpmVoice
+import translator
 
 # 文件行顺序 M1,C1,M2,C2 → 物理 slot 0,2,1,3
 VOPM_OP_REG = [0, 2, 1, 3]
@@ -556,7 +557,8 @@ class OpmSystem:
         self.voices: list[OpmVoice] = []
         self.programs = [0] * 16
         self.bend14 = [8192] * 16
-        
+        self.translate_pitch = True  # 音高翻译开关
+        self.translate_env = True    # 包络翻译开关
         self.sustain = [False] * 16
         self.ch_vol = [127] * 16
         self.ch_expr = [127] * 16
@@ -598,17 +600,26 @@ class OpmSystem:
         self._w(0x1B, (lfo[3] & 0x03) | ((lfo[4] & 0x1F) << 3))
 
         pan, fl, con, ams, pms = v.ch[0], v.ch[1], v.ch[2], v.ch[3], v.ch[4]
+        
+        if self.translate_env:
+            fl = translator.translate_fb(fl)
+            
         self._w(0x20 + ch, _pan_bits(pan) | ((fl & 7) << 3) | (con & 7))
         self._w(0x38 + ch, ((pms & 7) << 4) | (ams & 3))
 
         for i, op in enumerate(v.ops):
             base = VOPM_OP_REG[i] * 8 + ch
+            dr, sr, rr = op["dr"], op["sr"], op["rr"]
+            
+            if self.translate_env:
+                dr, sr, rr = translator.translate_opn_envelope_to_opm(dr, sr, rr)
+                
             self._w(0x40 + base, ((op["dt1"] & 7) << 4) | (op["mul"] & 0x0F))
             self._w(0x60 + base, op["tl"] & 0x7F)
             self._w(0x80 + base, ((op["ks"] & 3) << 6) | (op["ar"] & 0x1F))
-            self._w(0xA0 + base, ((op.get("ame", 0) & 1) << 7) | (op["dr"] & 0x1F))
-            self._w(0xC0 + base, ((op["dt2"] & 3) << 6) | (op["sr"] & 0x1F))
-            self._w(0xE0 + base, ((op["sl"] & 0x0F) << 4) | (op["rr"] & 0x0F))
+            self._w(0xA0 + base, ((op.get("ame", 0) & 1) << 7) | (dr & 0x1F))
+            self._w(0xC0 + base, ((op["dt2"] & 3) << 6) | (sr & 0x1F))
+            self._w(0xE0 + base, ((op["sl"] & 0x0F) << 4) | (rr & 0x0F))
 
     def _update_tl(self, ch: int, v: OpmVoice, velocity: int) -> None:
         midi_ch = self.slots[ch].midi_ch
@@ -648,14 +659,18 @@ class OpmSystem:
         frac = pitch - base
         note = max(0, min(127, base))
 
-        octave = (note // 12) - 1
-        octave = max(0, min(7, octave)) 
-        key = KTBL[note % 12]
-        kc = (octave << 4) | key
-        
-        kf = int(round(frac * 64)) & 0x3F
-        self._w(0x28 + ch, kc & 0x7F)
-        self._w(0x30 + ch, kf << 2)
+        if self.translate_pitch:
+            kc, kf = translator.midi_to_opm_pitch(note)
+            self._w(0x28 + ch, kc)
+            self._w(0x30 + ch, kf)
+        else:
+            octave = (note // 12) - 1
+            octave = max(0, min(7, octave)) 
+            key = KTBL[note % 12]
+            kc = (octave << 4) | key
+            kf = int(round(frac * 64)) & 0x3F
+            self._w(0x28 + ch, kc & 0x7F)
+            self._w(0x30 + ch, kf << 2)
 
     def _pitch_with_bend(self, midi_ch: int, note: int) -> float:
         bend = (self.bend14[midi_ch & 0x0F] - 8192) / 8192.0
@@ -724,61 +739,70 @@ class OpmSystem:
         s.release_time = self.time
 
     def _play_drum(self, note: int, velocity: int) -> None:
-        """在专属鼓通道（物理通道 7）硬写专业 FM 鼓点"""
+        """专属鼓通道发声逻辑（纯净版：包络零翻译，保留极速瞬态）"""
         if note not in DRUM_BANK:
             return
             
-        ch = self.drum_ch # 固定物理通道 7
+        ch = self.drum_ch
         drum_data = DRUM_BANK[note]
         
-        # 1. 强行停止通道 7 的上一个音（单通道鼓的物理限制，会导致吞音）
-        self._w(0x08, ch)
+        # 1. 兼容元组和字典的数据解包
+        if isinstance(drum_data, tuple):
+            alg, fb, op0, op1, op2, op3 = drum_data
+            operators = [op0, op1, op2, op3]
+        else:
+            alg = drum_data['alg']
+            fb = drum_data['fb']
+            operators = drum_data['operators']
+            
+        self._w(0x08, ch) # 停止上一个音
         
-        # 2. 写入算法、反馈与立体声声像
-        # 0xC0 = 左右声道全开
-        alg = drum_data['alg'] & 7
-        fb = drum_data['fb'] & 7
-        self._w(0x20 + ch, 0xC0 | (fb << 3) | alg)
+        # 2. 反馈强制限制（不调用外部函数，直接防爆音）
+        safe_fb = min(fb, 6) 
+        self._w(0x20 + ch, 0xC0 | (safe_fb << 3) | (alg & 7))
         
-        # 3. 将 MIDI 力度映射到音量衰减
-        # 力度越小，TL 越大（衰减越多）。为了鼓声有穿透力，这里衰减系数稍微保守一点
-        vel_atten = (127 - velocity) >> 1 
+        # 3. 力度衰减 (>> 2 即可)
+        vel_atten = (127 - velocity) >> 2
         
-        # 4. 遍历 4 个算子，写入参数
-        for i, op in enumerate(drum_data['operators']):
-            # VOPM_OP_REG 负责把文件顺序 (M1,C1,M2,C2) 映射到物理槽位 (0,2,1,3)
+        # 4. 写入算子参数
+        for i, op in enumerate(operators):
             base = VOPM_OP_REG[i] * 8 + ch
             
-            # 鼓组的 TL 加上力度衰减
-            op_tl = min(127, op['tl'] + vel_atten)
+            # 提取算子参数
+            if isinstance(op, tuple):
+                dt1, mul, tl, ks, ar, dr, sr, sl, rr = op
+            else:
+                dt1 = op.get('dt1', op.get('dt', 0))
+                mul = op['mul']
+                tl = op['tl']
+                ks = op['ks']
+                ar = op['ar']
+                dr = op['dr']
+                sr = op['sr']
+                sl = op['sl']
+                rr = op['rr']
             
-            self._w(0x40 + base, ((op['dt'] & 7) << 4) | (op['mul'] & 0x0F))
+            op_tl = min(127, tl + vel_atten)
+            
+            self._w(0x40 + base, ((dt1 & 7) << 4) | (mul & 0x0F))
             self._w(0x60 + base, op_tl & 0x7F)
-            self._w(0x80 + base, ((op['ks'] & 3) << 6) | (op['ar'] & 0x1F))
+            self._w(0x80 + base, ((ks & 3) << 6) | (ar & 0x1F))
             
-            # 0xA0：AMS-EN 置 0，写入 DR
-            self._w(0xA0 + base, op['dr'] & 0x1F)
+            # 【核心】：这里直接使用原生的 dr, sr, rr，绝对不调用 translator！
+            self._w(0xA0 + base, dr & 0x1F) 
+            self._w(0xC0 + base, sr & 0x1F) 
+            self._w(0xE0 + base, ((sl & 0x0F) << 4) | (rr & 0x0F))
             
-            # 0xC0：DT2 暂时置 0，写入 SR
-            self._w(0xC0 + base, op['sr'] & 0x1F)
-            
-            # 0xE0：写入 SL 和 RR
-            self._w(0xE0 + base, ((op['sl'] & 0x0F) << 4) | (op['rr'] & 0x0F))
-            
-        # 5. 设置音高
-        # 鼓组的音高通常由 MIDI 音符映射决定（比如 35 是底鼓，42 是闭镲）
-        # 用我们标准的 KTBL 算 KC，这样能保证不同音高的桶鼓、镲片映射准确
-        octave = (note // 12) - 1
+        # 5. 音高修正 (降 1 个八度，给底鼓一点下潜)
+        octave = (note // 12) - 1 
         octave = max(0, min(7, octave)) 
-        key = KTBL[note % 12]
-        kc = (octave << 4) | key
-        
+        kc = (octave << 4) | KTBL[note % 12]
         self._w(0x28 + ch, kc & 0x7F)
-        self._w(0x30 + ch, 0x00) # KF 设为 0
+        self._w(0x30 + ch, 0x00)
         
-        # 6. 触发 Key-On (全开 4 个算子)
-        self._w(0x08, 0x78 | ch) 
-        
+        # 6. Key-On 触发
+        self._w(0x08, 0x78 | ch)
+
         # 7. 记录槽位状态
         s = self.slots[ch]
         s.midi_ch, s.note, s.velocity = 9, note, velocity

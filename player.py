@@ -69,6 +69,9 @@ def main(argv=None) -> int:
     ap.add_argument("--core", default="opm", choices=["opm", "null"])
     ap.add_argument("--clock", type=int, default=3_579_545)
     ap.add_argument("--tail", type=float, default=1.0, help="尾部余响秒数")
+    ap.add_argument("-r", "--raw", action="store_true", 
+                    help="关闭翻译，保留原始 OPN 到 OPM 的物理偏移与畸变")
+
     args = ap.parse_args(argv)
 
     if not os.path.exists(args.bank):
@@ -89,6 +92,8 @@ def main(argv=None) -> int:
 
     system = OpmSystem(core)
     system.load_bank(voices)
+    system.translate_pitch = not args.raw
+    system.translate_env = not args.raw
 
     sr = core.sample_rate()
     pcm = render(system, core, events, total_sec, sr, tail=args.tail)

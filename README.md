@@ -22,6 +22,17 @@ Since the YM2151 lacks ADPCM/sample playback, GM standard drum kits (Channel 10)
 **4. CC74 Brightness Control**
 Implements CC74 (Brightness) following Wohlstand's approach (libOPNMIDI): the Modulator's TL is adjusted dynamically to simulate a low-pass filter effect on the FM timbre.
 
+## ⚖️ Cross-Chip Translation Engine
+Historically, there was never a native 128-instrument GM bank designed exclusively for the OPM. All existing `.opm` banks (including `NECOPN_GM`) are derived from OPN (YM2612/YM2608) parameters. Feeding OPN parameters directly into OPM causes physical pitch offsets and "plastic/farting" drum sounds. 
+
+To solve this, this engine includes a **Translation Layer (`translator.py`)**:
+
+**1. Pitch Translation (Default ON)**: Mathematically converts MIDI notes into precise OPM KC/KF registers based on the 440Hz standard. This completely eliminates the legacy "high-pitch" physical offset of the YM2151. 
+**2. Melody Envelope Translation (Default ON)**: Scales OPN decay rates (DR/SR) for melodic instruments to prevent them from sounding too thin and dry on OPM hardware.
+**3. Drum Envelope (Strictly Raw)**: Drum envelopes are **NEVER translated**. Keeping the raw, ultra-fast OPN decay rates ensures the drum hits have an explosive transient. Translating drum envelopes would cause them to smear into a muddy low-frequency mess (especially in HLE-based VGM players).
+
+*Note: You can disable the translation layer using the `-r` (or `--raw`) argument to experience the raw physical distortion.*
+
 ## Drum Kit Implementation & OPM Bank Limitations
  A fundamental limitation of the standard .opm file format is that it natively supports only 128 melodic instruments. Historically, percussion on OPM chips was entirely synthesized or handled via external hardware. Therefore, standard .opm banks physically cannot contain a GM drum kit.
 
@@ -58,6 +69,7 @@ python player.py "path/to/your.mid" --bank "NECOPN_GM.opm" -o "output.wav"
 | `-o, --out` | — | Path to the output `.wav` file. |
 | `--tail` | `1.0` | Seconds of extra audio to render at the end. |
 | `--clock` | `3579545` | Master clock for the OPM chip (Hz). |
+| -r, --raw | False | Disables the translation layer (Raw Mode). Retains original pitch offsets and untranslated envelopes. |
 
 ### 🔄 Interoperability with WOPN Banks
 This engine is not limited to `.opm` presets extracted from `NECOPN.DRV`. Valid **`.wopn` (WOPN2-B2NK)** banks designed for `libOPNMIDI` can also be perfectly utilized by this engine after conversion to `.opm` format.
