@@ -100,6 +100,17 @@ Located in experimental/OPMMIDI-GAI/, this version is a technical Proof of Conce
 
 Note: This is an experimental branch and does not affect the main single-chip OPM engine.
 
+### 🧪 Experimental: OPMMIDI-GAI2 (FM + SSG Dual-Core)
+Located in experimental/OPMMIDI-GAI2(SSG)/, this is another Proof of Concept (PoC) exploring the historically accurate YM2151 (OPM) + YM2149 (SSG) arcade hardware combination.
+
+1. **The Concept**: While the previous GAI version utilized OPNA's RHY (PCM) for drums, using PCM samples alongside a pure YM2151 can feel sonically out of place. In classic arcade boards, the OPM was frequently paired with an independent YM2149 (SSG) chip. This version introduces a virtual SSG core via emu2149 to handle the percussion.
+
+2. **SSG Noise Drums**: By utilizing the SSG's hardware noise generator (LFSR) and square-wave oscillators, core drum hits (Kick, Snare, Hi-hat) are synthesized using precise hardware envelopes. This significantly relieves the pressure on the 8 FM channels, allowing the OPM to dedicate itself entirely to melodies and harmonies.
+
+3. **Known Limitations**: Handling the exact timing of SSG intervention in real-time MIDI streams (vs. offline global allocation) remains a complex challenge. This implementation is currently a "rough" technical exploration of streaming decisions.
+
+4. **VGM Export**: Exports true dual-chip VGM files (YM2151 + YM2149), preserving the SSG drum logs using standard 0xA0 register writes and correct chip clock headers.
+
 ###
 - **Hardware Quirks & Uncontrollable Artifacts:** Because this project uses Nuked OPM, it simulates the raw digital output of the YM2151 without modern DSP smoothing or built-in LPF. Dense MIDI events or high-feedback patches may produce harsh "zipper noise" or high-frequency aliasing. This is a genuine characteristic of the hardware, not a bug.
 - **Swapping the Core:** If you prefer a smoother, VST-like sound, the modular design allows you to replace the core. Refer to the encapsulation logic in `core.py` and implement the `ChipCore` abstract class to wrap another emulator (e.g., `fmgen`), then pass it to `driver.py`.
@@ -113,6 +124,7 @@ Note: This is an experimental branch and does not affect the main single-chip OP
 ### 🙏 Credits & Disclaimer
 - **Credits & Sound Bank**
 OPN2-BE & WOPN Collections: Special thanks to Wohlstand and JP Cimalando for their foundational work on OPN2-BE (OPN2 Bank Editor). Their support for OPM bank exporting made the WOPN→OPM cross-chip workflow possible. More importantly, we deeply appreciate the high-quality WOPN instrument collections they curated, which made it possible to backport professionally tuned FM drums into this engine.
+emu2149 Core: Special thanks to Mitsutaka Okazaki for the brilliant emu2149 YM2149 emulation core. Its incredibly lightweight C implementation made the virtual SSG integration possible, allowing us to faithfully recreate the crisp noise drums of the 80s.
 - **Sound Bank (OPM Presets):** The `.opm` patches provided in this repo are dynamically extracted from the reverse-engineered `NECOPN.DRV`. Check out the extraction project here: https://github.com/EriczjrWinter/necopn-drv-reverse
-- **Emulation Core:** [Nuked-OPM](https://github.com/nukeykt/Nuked-OPM) by Nuke.YKT.
+- **MAIN Emulation Core:** [Nuked-OPM](https://github.com/nukeykt/Nuked-OPM) by Nuke.YKT.
 - This project is for educational and preservation purposes only. All rights belong to their respective owners.
