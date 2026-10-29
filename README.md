@@ -124,7 +124,7 @@ Located in experimental/OPMMIDI-GAI2(SSG)/, this is another Proof of Concept (Po
 ### 🙏 Credits & Disclaimer
 - **Credits & Sound Bank**
 OPN2-BE & WOPN Collections: Special thanks to Wohlstand and JP Cimalando for their foundational work on OPN2-BE (OPN2 Bank Editor). Their support for OPM bank exporting made the WOPN→OPM cross-chip workflow possible. More importantly, we deeply appreciate the high-quality WOPN instrument collections they curated, which made it possible to backport professionally tuned FM drums into this engine.
-emu2149 Core: Special thanks to Mitsutaka Okazaki for the brilliant emu2149 YM2149 emulation core. Its incredibly lightweight C implementation made the virtual SSG integration possible, allowing us to faithfully recreate the crisp noise drums of the 80s.
+- emu2149 Core: Special thanks to Mitsutaka Okazaki for the brilliant emu2149 YM2149 emulation core. Its incredibly lightweight C implementation made the virtual SSG integration possible, allowing us to faithfully recreate the crisp noise drums of the 80s.
 - **Sound Bank (OPM Presets):** The `.opm` patches provided in this repo are dynamically extracted from the reverse-engineered `NECOPN.DRV`. Check out the extraction project here: https://github.com/EriczjrWinter/necopn-drv-reverse
 - **MAIN Emulation Core:** [Nuked-OPM](https://github.com/nukeykt/Nuked-OPM) by Nuke.YKT.
 - This project is for educational and preservation purposes only. All rights belong to their respective owners.
