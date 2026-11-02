@@ -661,33 +661,18 @@ class OpmSystem:
                 tl = min(127, tl + atten_mod)
             self._w(0x60 + VOPM_OP_REG[i] * 8 + ch, tl)
 
-    def _set_pitch(self, ch: int, pitch: float, v: OpmVoice = None) -> None:
+    def _set_pitch(self, ch: int, pitch: float) -> None: # 去掉 v 参数
         base = int(math.floor(pitch))
         frac = pitch - base
         note = max(0, min(127, base))
 
         if getattr(self, 'translate_pitch', False):
-            kc, kf, mul_offset = translator.midi_to_opm_pitch(note)
+            # 只接收两个返回值
+            kc, kf = translator.midi_to_opm_pitch(note)
             self._w(0x28 + ch, kc)
             self._w(0x30 + ch, kf)
-            
-            # 动态修改 MUL
-            if v is not None:
-                for i, op in enumerate(v.ops):
-                    base_reg = 0x40 + VOPM_OP_REG[i] * 8 + ch
-                    orig_mul = op["mul"] & 0x0F
-                    dt1 = op["dt1"] & 7
-                    
-                    if mul_offset > 0:
-                        # 超高频：加上 W 佬的偏移
-                        new_mul = min(15, orig_mul + mul_offset)
-                    else:
-                        # 正常音高：【必须有这个复位】，恢复原始参数
-                        new_mul = orig_mul
-                        
-                    self._w(base_reg, (dt1 << 4) | new_mul)
+            # 删掉所有关于 mul_offset 和 0x40 寄存器的修改
         else:
-            # 原生模式（不动 MUL）
             octave = (note // 12) - 1
             octave = max(0, min(7, octave)) 
             key = KTBL[note % 12]
@@ -913,8 +898,8 @@ class OpmSystem:
         s.serial = self.serial
 
         self._update_tl(ch, v, velocity)
-        self._set_pitch(ch, self._pitch_with_bend(midi_ch, note), v)
-
+        # 回滚：不传 v
+        self._set_pitch(ch, self._pitch_with_bend(midi_ch, note)) 
         self._w(0x08, 0x78 | ch)
 
     def note_off(self, midi_ch: int, note: int) -> None:
@@ -937,18 +922,15 @@ class OpmSystem:
 
     def pitch_bend(self, midi_ch: int, lsb: int, msb: int) -> None:
         midi_ch &= 0x0F
-        if midi_ch == 9:  # 保护鼓通道
+        if midi_ch == 9:
             return
             
         self.bend14[midi_ch] = ((msb & 0x7F) << 7) | (lsb & 0x7F)
         
         for i, s in enumerate(self.slots):
             if s.active and s.midi_ch == midi_ch and i != self.drum_ch:
-                # 【新增】：获取音色对象
-                v = self.voices[s.program % max(1, len(self.voices))]
-                
-                # 【修改】：传入 v
-                self._set_pitch(i, self._pitch_with_bend(midi_ch, s.note), v)
+                # 回滚：删掉获取 v 的那行，直接传两个参数
+                self._set_pitch(i, self._pitch_with_bend(midi_ch, s.note))
 
     def control_change(self, midi_ch: int, cc: int, value: int) -> None:
         midi_ch &= 0x0F
