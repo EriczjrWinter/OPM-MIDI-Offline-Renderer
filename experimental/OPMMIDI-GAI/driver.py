@@ -1,6 +1,7 @@
 # driver.py
 from __future__ import annotations
 import math
+import translator
 from pcm_core import PcmCore
 from dataclasses import dataclass
 from core import ChipCore
@@ -567,7 +568,8 @@ class OpmSystem:
         self.voices: list[OpmVoice] = []
         self.programs = [0] * 16
         self.bend14 = [8192] * 16
-        
+        self.translate_pitch = True  # 音高翻译开关
+        self.translate_env = True    # 包络翻译开关
         self.sustain = [False] * 16
         self.ch_vol = [127] * 16
         self.ch_expr = [127] * 16
@@ -610,17 +612,28 @@ class OpmSystem:
         self._w(0x1B, (lfo[3] & 0x03) | ((lfo[4] & 0x1F) << 3))
 
         pan, fl, con, ams, pms = v.ch[0], v.ch[1], v.ch[2], v.ch[3], v.ch[4]
+        
+        # 【翻译层】：限制反馈
+        if self.translate_env:
+            fl = translator.translate_fb(fl)
+            
         self._w(0x20 + ch, _pan_bits(pan) | ((fl & 7) << 3) | (con & 7))
         self._w(0x38 + ch, ((pms & 7) << 4) | (ams & 3))
 
         for i, op in enumerate(v.ops):
             base = VOPM_OP_REG[i] * 8 + ch
+            dr, sr, rr = op["dr"], op["sr"], op["rr"]
+            
+            # 【翻译层】：拉长包络，增加厚度
+            if self.translate_env:
+                dr, sr, rr = translator.translate_opn_envelope_to_opm(dr, sr, rr)
+                
             self._w(0x40 + base, ((op["dt1"] & 7) << 4) | (op["mul"] & 0x0F))
             self._w(0x60 + base, op["tl"] & 0x7F)
             self._w(0x80 + base, ((op["ks"] & 3) << 6) | (op["ar"] & 0x1F))
-            self._w(0xA0 + base, ((op.get("ame", 0) & 1) << 7) | (op["dr"] & 0x1F))
-            self._w(0xC0 + base, ((op["dt2"] & 3) << 6) | (op["sr"] & 0x1F))
-            self._w(0xE0 + base, ((op["sl"] & 0x0F) << 4) | (op["rr"] & 0x0F))
+            self._w(0xA0 + base, ((op.get("ame", 0) & 1) << 7) | (dr & 0x1F))
+            self._w(0xC0 + base, ((op["dt2"] & 3) << 6) | (sr & 0x1F))
+            self._w(0xE0 + base, ((op["sl"] & 0x0F) << 4) | (rr & 0x0F))
 
     def _update_tl(self, ch: int, v: OpmVoice, velocity: int) -> None:
         midi_ch = self.slots[ch].midi_ch
@@ -660,14 +673,19 @@ class OpmSystem:
         frac = pitch - base
         note = max(0, min(127, base))
 
-        octave = (note // 12) - 1
-        octave = max(0, min(7, octave)) 
-        key = KTBL[note % 12]
-        kc = (octave << 4) | key
-        
-        kf = int(round(frac * 64)) & 0x3F
-        self._w(0x28 + ch, kc & 0x7F)
-        self._w(0x30 + ch, kf << 2)
+        # 【翻译层】：开启时使用数学绝对音高，关闭时使用原生查表
+        if getattr(self, 'translate_pitch', False):
+            kc, kf = translator.midi_to_opm_pitch(note)
+            self._w(0x28 + ch, kc)
+            self._w(0x30 + ch, kf)
+        else:
+            octave = (note // 12) - 1
+            octave = max(0, min(7, octave)) 
+            key = KTBL[note % 12]
+            kc = (octave << 4) | key
+            kf = int(round(frac * 64)) & 0x3F
+            self._w(0x28 + ch, kc & 0x7F)
+            self._w(0x30 + ch, kf << 2)
 
     def _pitch_with_bend(self, midi_ch: int, note: int) -> float:
         bend = (self.bend14[midi_ch & 0x0F] - 8192) / 8192.0
