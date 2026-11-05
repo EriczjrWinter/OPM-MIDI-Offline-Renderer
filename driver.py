@@ -659,11 +659,13 @@ class OpmSystem:
         frac = pitch - base
         note = max(0, min(127, base))
 
-        if self.translate_pitch:
-            kc, kf = translator.midi_to_opm_pitch(note)
+        if getattr(self, 'translate_pitch', False):
+            # 【核心修复】：直接把带小数的 pitch 传进去！
+            kc, kf = translator.midi_to_opm_pitch(pitch) 
             self._w(0x28 + ch, kc)
             self._w(0x30 + ch, kf)
         else:
+            # 原生模式原本的公式也是对的（它用了 frac）
             octave = (note // 12) - 1
             octave = max(0, min(7, octave)) 
             key = KTBL[note % 12]
