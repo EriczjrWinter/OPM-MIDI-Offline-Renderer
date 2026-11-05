@@ -661,18 +661,18 @@ class OpmSystem:
                 tl = min(127, tl + atten_mod)
             self._w(0x60 + VOPM_OP_REG[i] * 8 + ch, tl)
 
-    def _set_pitch(self, ch: int, pitch: float) -> None: # 去掉 v 参数
+    def _set_pitch(self, ch: int, pitch: float) -> None:
         base = int(math.floor(pitch))
         frac = pitch - base
         note = max(0, min(127, base))
 
         if getattr(self, 'translate_pitch', False):
-            # 只接收两个返回值
-            kc, kf = translator.midi_to_opm_pitch(note)
+            # 【核心修复】：直接把带小数的 pitch 传进去！
+            kc, kf = translator.midi_to_opm_pitch(pitch) 
             self._w(0x28 + ch, kc)
             self._w(0x30 + ch, kf)
-            # 删掉所有关于 mul_offset 和 0x40 寄存器的修改
         else:
+            # 原生模式原本的公式也是对的（它用了 frac）
             octave = (note // 12) - 1
             octave = max(0, min(7, octave)) 
             key = KTBL[note % 12]

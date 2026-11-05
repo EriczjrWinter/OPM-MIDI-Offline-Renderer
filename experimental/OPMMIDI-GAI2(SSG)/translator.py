@@ -1,20 +1,44 @@
 # translator.py
 import math
 
-def midi_to_opm_pitch(note, clock=3579545, base_freq=440.0):
-    pitch_freq = base_freq * (2.0 ** ((note - 69) / 12.0))
+def midi_to_opm_pitch(pitch, clock=3579545, base_freq=440.0):
+    """
+    支持浮点数的 OPM 音高翻译。
+    pitch 可以是 60.5，代表 C4 往上升半个半音。
+    """
+    # 限制范围，防止溢出
+    pitch = max(0.0, min(127.99, pitch))
+    
+    # 计算标准频率
+    pitch_freq = base_freq * (2.0 ** ((pitch - 69) / 12.0))
+    
+    # 计算 OPM 对应的绝对浮点值
+    # (3584 是 8 个八度的基准偏移量，64 是一个八度内的刻度数，12 是半音数)
     kf_float = 3584 + 64 * 12 * math.log2(pitch_freq * clock / 3579545.0 / base_freq)
     
-    octave = int(kf_float / 64 / 12)
-    k = int(kf_float / 64) % 12
-    opm_notes = [0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14]
+    # 为了防止浮点误差导致半音跳动，加上极小偏移并四舍五入
+    kf_float += 0.000001
     
-    # 物理截断，不搞任何 MUL 偏移
+    # 计算八度
+    octave = int(kf_float // (64 * 12))
     octave = max(0, min(7, octave))
     
-    kc_val = (octave << 4) | opm_notes[k]
-    kf_val = int(kf_float % 64) << 2
-    return kc_val & 0x7F, kf_val & 0xFF # 只返回两个值
+    # 计算当前八度内的相对值
+    remainder = kf_float - (octave * 64 * 12)
+    
+    # 计算音名索引 (0 代表 C#)
+    key_index = int(remainder // 64)
+    opm_notes = [0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14]
+    kc_low = opm_notes[key_index]
+    
+    # 计算微调 (KF寄存器)
+    # 保留 remainder 的小数部分，映射到 0~63 的整数
+    kf_rem = remainder % 64
+    kf_val = int(round(kf_rem)) & 0x3F
+    
+    kc_val = (octave << 4) | kc_low
+    
+    return kc_val & 0x7F, (kf_val << 2)
 
 def translate_opn_envelope_to_opm(dr, sr, rr):
     """包络翻译：修正 OPN 包络在 OPM 上过快的衰减，防止塑料放屁音"""
