@@ -90,13 +90,20 @@ python vgm_player.py "path/to/your.mid" --bank "NECOPN_GM.opm" -o "output.vgm"
 ### 🧪 Experimental: OPMMIDI-GAI (FM + PCM Dual-Core)
 Located in experimental/OPMMIDI-GAI/, this version is a technical Proof of Concept (PoC) inspired by the legendary Sharp X68000 hardware architecture and the Fujitsu EUPHONY driver (FM TOWNS).
 
-1. **The Concept**: Just like EUPHONY separated instruments into FMB (FM Bank) for melodies and PMB (PCM Bank) for percussion, this engine splits the workload. It pairs the Nuked-OPM core with a virtual PCM sample player, allowing the YM2151 to dedicate all 8 channels to FM melodies, while an external PCM core handles polyphonic drums.
+#### 🥁 GAI (PCM) Percussion Source: KORG M1
 
-2. **No FM Drums**: The legacy hardcoded FM drum kit is completely removed in this version. All percussion is strictly handled by the PCM core.
+In the GAI (PCM) experiment, percussion is no longer sourced from the OPNA RHY module. While RHY is historically accurate for PC-98, But not for Sharp X68000 or other OPM Music.
 
-3. **Focus on WAV Rendering**: This experimental version is designed exclusively for WAV rendering. The VGM export feature was intentionally removed due to incomplete dual-chip data block implementation.
+To better match the **aesthetic preferences and sampling workflows of 90s composers** (who frequently used external samplers like the KORG M1 for drum design), we now use **KORG M1 drum waveforms** as the PCM source. These samples are then processed through a **22kHz / 8-bit bitcrush** pipeline to replicate the "lo-fi" character of vintage hardware DACs.
 
-4. **Requirements for Testing**: To hear the drums, users must provide their own OPNA RHY samples (named as 2608_BD.WAV, 2608_SD.WAV, etc., due to Yamaha copyright) and place them directly inside the experimental/OPMMIDI-GAI/ folder alongside its player.py.
+**How to set up the KORG M1 Drum Kit:**
+1. **Download**: Obtain the **"KORG M1 Waveforms Soundfont"** by PlaceboPerson1 from [Musical Artifacts (Artifact #9388)]. 
+   *(Note: You need to manually click the download button on the page. The pack contains separate WAV files for drum waveforms.)*
+2. **Extract**: Place the downloaded WAV files into the `drum_samples/` folder in the project root.
+3. **Process (Recommended)**: Run `python drum_samples/process_drums.py`. This script automatically applies a 22kHz downsample, a 4.5kHz low-pass filter, and an 8-bit bitcrush to simulate the vintage texture. The processed files will be saved to `drum_samples/lofi/`.
+4. **Render**: Run `player.py`. The engine will **automatically scan** the folder and map the drum files to the correct MIDI notes.
+
+> **⚠️ Legal Notice**: This project **does not distribute** any KORG copyrighted samples. The download link is provided for educational and preservation purposes only. Commercial use of KORG samples is strictly prohibited. Users must obtain these samples legally on their own.
 
 Note: This is an experimental branch and does not affect the main single-chip OPM engine.
 

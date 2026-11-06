@@ -757,15 +757,10 @@ class OpmSystem:
         s.release_time = self.time
 
     def _play_drum(self, note: int, velocity: int) -> None:
-        """混合打击乐：核心高频鼓交给PCM，特色鼓还给FM (Ch7)"""
-        
-        # 1. 检查是否属于高频核心鼓，且我们有对应的 PCM 采样
-        if note in PCM_RHY_PRIORITY and hasattr(self, 'pcm'):
-            rhy_name = RHY_MAP.get(note)
-            if rhy_name and rhy_name in self.pcm.samples:
-                # 路线 A：交给虚拟 PCM 芯片（解决复音吞音）
-                self.pcm.play(rhy_name, velocity)
-                return  # 直接返回，完全不碰 FM 通道
+        # 【必须是这样】：检查 PCM 里有没有被字符串化的数字键名
+        if hasattr(self, 'pcm') and str(note) in self.pcm.samples:
+            self.pcm.play(str(note), velocity)
+            return  # 【重点】：必须有 return！不要让它继续往下走去调用 FM 鼓
                 
         # 2. 剩下的（通鼓、镲片、木鱼、甚至 PCM 没采样的）全部交给 FM (Ch7)
         if note not in DRUM_BANK:

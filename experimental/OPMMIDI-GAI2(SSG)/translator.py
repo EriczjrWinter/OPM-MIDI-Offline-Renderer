@@ -3,38 +3,43 @@ import math
 
 def midi_to_opm_pitch(pitch, clock=3579545, base_freq=440.0):
     """
-    支持浮点数的 OPM 音高翻译。
-    pitch 可以是 60.5，代表 C4 往上升半个半音。
+    极简、极速、防越界的 OPM 音高翻译。
+    pitch: 可以是浮点数（比如 60.5 代表弯音）。
     """
-    # 限制范围，防止溢出
+    # 1. 限制输入 MIDI 范围，防止底层 CPU 算爆
     pitch = max(0.0, min(127.99, pitch))
     
-    # 计算标准频率
-    pitch_freq = base_freq * (2.0 ** ((pitch - 69) / 12.0))
+    # 2. 直接使用线性映射公式（完美支持小数弯音，且没有 math.log2 的浮点误差）
+    # 64 是一个半音的刻度数，3584 是 MIDI 69 (A4) 对应的基准值
+    kf_float = 64.0 * (pitch - 69.0) + 3584.0
     
-    # 计算 OPM 对应的绝对浮点值
-    # (3584 是 8 个八度的基准偏移量，64 是一个八度内的刻度数，12 是半音数)
-    kf_float = 3584 + 64 * 12 * math.log2(pitch_freq * clock / 3579545.0 / base_freq)
-    
-    # 为了防止浮点误差导致半音跳动，加上极小偏移并四舍五入
-    kf_float += 0.000001
-    
-    # 计算八度
+    # 3. 计算八度
     octave = int(kf_float // (64 * 12))
-    octave = max(0, min(7, octave))
     
-    # 计算当前八度内的相对值
+    # 【核心保护】：强行截断到 0~7 八度，防止越界
+    if octave < 0:
+        octave = 0
+        kf_float = 0.0 
+    elif octave > 7:
+        octave = 7
+        # 截断到八度 7 的最高音（B音，音名索引 11，微调 63）
+        kf_float = (7 * 64 * 12) + (11 * 64) + 63.0
+        
+    # 4. 计算当前八度内的余数
     remainder = kf_float - (octave * 64 * 12)
     
-    # 计算音名索引 (0 代表 C#)
+    # 计算音名索引 (0~11)
     key_index = int(remainder // 64)
+    
+    # 【双重保护】：防止浮点意外
+    key_index = max(0, min(11, key_index))
+    
+    # OPM 的 KC 映射表
     opm_notes = [0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14]
     kc_low = opm_notes[key_index]
     
-    # 计算微调 (KF寄存器)
-    # 保留 remainder 的小数部分，映射到 0~63 的整数
-    kf_rem = remainder % 64
-    kf_val = int(round(kf_rem)) & 0x3F
+    # 5. 计算微调 (KF)
+    kf_val = int(round(remainder % 64)) & 0x3F
     
     kc_val = (octave << 4) | kc_low
     

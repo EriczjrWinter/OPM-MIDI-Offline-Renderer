@@ -130,26 +130,47 @@ def main(argv=None) -> int:
 
     system = OpmSystem(core)
     system.load_bank(voices)
-    
-    # 【开启翻译层】
     system.translate_pitch = not args.raw
     system.translate_env = not args.raw
 
-    # 【加载 RHY 采样】
-    # 假设这些 WAV 文件在项目根目录，或者你指定的路径下
-    rhy_files = {
-        'BD': '2608_BD.WAV',
-        'HH': '2608_HH.WAV',
-        'RIM': '2608_RIM.WAV',
-        'SD': '2608_SD.WAV',
-        'TOM': '2608_TOM.WAV',
-        'TOP': '2608_TOP.WAV',
-        # 'RYM': '2608_RYM.WAV' # 这个视情况加载，可能不是标准鼓
+    # ==========================================
+    # 📥 加载 Korg M1 鼓组 (自动映射)
+    # ==========================================
+    import glob  # 如果文件顶部已经 import 了，这里可以删掉
+
+    # 优先读取 lofi 文件夹（如果用户跑过降采样脚本），否则读取原版
+    drum_dir = os.path.join(HERE, "drum_samples", "lofi")
+    if not os.path.exists(drum_dir):
+        drum_dir = os.path.join(HERE, "drum_samples")
+
+    # 关键词映射表
+    KORG_KEYWORD_MAP = {
+        35: "Kick 1",      36: "Kick 2",      37: "Side Stick",
+        38: "Snare 1",     39: "Claps",       40: "Snare 2",
+        41: "Tom 1",       42: "Closed HH1",  43: "Tom 2",
+        44: "Open HH1",    45: "E.Tom",       46: "Closed HH2",
+        47: "E.Tom",       48: "Tom 1",       49: "Crash",
+        50: "Tom 2",       51: "Ride",        52: "Crash",
+        53: "Wind Bells",  54: "Tambourine",  56: "Cowbell",
+        70: "Shaker"
     }
-    
-    for name, filename in rhy_files.items():
-        if os.path.exists(filename):
-            system.pcm.load_sample(name, filename)
+
+    loaded_count = 0
+    if os.path.exists(drum_dir):
+        for wav_path in glob.glob(os.path.join(drum_dir, "*.wav")):
+            filename = os.path.basename(wav_path)
+            for note, keyword in KORG_KEYWORD_MAP.items():
+                if keyword in filename:
+                    # 核心逻辑：把 MIDI 音符数字(如"35")作为 Key，加载进 PcmCore
+                    system.pcm.load_sample(str(note), wav_path)
+                    loaded_count += 1
+                    break
+                    
+    if loaded_count > 0:
+        print(f"🥁 成功加载并映射了 {loaded_count} 个 Korg M1 鼓采样！")
+    else:
+        print("⚠️ 未找到 Korg 鼓采样，将回退到 FM 鼓组。")
+    # ==========================================
 
     sr = core.sample_rate()
     pcm = render(system, core, events, total_sec, sr, tail=args.tail)

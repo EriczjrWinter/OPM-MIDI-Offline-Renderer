@@ -98,13 +98,20 @@ python vgm_player.py "你的文件.mid" --bank "NECOPN_GM.opm" -o "输出.vgm"
 ### 🧪 实验性功能：OPMMIDI-GAI 双芯片版本（FM + PCM）
 位于 experimental/OPMMIDI-GAI/ 目录下。这是一个技术验证（PoC），灵感源自 夏普 X68000 的硬件架构（FM+PCM） 以及 富士通 FM TOWNS 上 EUPHONY（尤弗乐）驱动的混合分离概念。
 
-1. **架构理念**：正如 EUPHONY 驱动将音源分为 FMB（FM音色库用于旋律） 和 PMB（PCM音色库用于节奏），本引擎将工作负载彻底分离。Nuked-OPM 核心负责驱动 8 个物理通道全力演奏 FM 旋律，而外挂的虚拟 PCM 核心专门负责复音打击乐。
+#### 🥁 GAI (PCM) 打击乐来源：KORG M1
 
-2. **移除 FM 鼓**：此实验版本中彻底删除了历史遗留的硬编码 FM 鼓组，所有打击乐严格交由 PCM 核心处理。
+在 GAI (PCM) 实验中，打击乐不再取自 OPNA 的 RHY 模块。虽然 RHY 对 PC-98 来说是准确的，但对于夏普X68000与其他OPM音乐来讲并不是。
 
-3. **专注 WAV 渲染**：该版本仅用于 WAV 渲染输出。由于双芯片 VGM 数据块封装尚未完善，VGM 导出功能已主动移除。
+为了更好地还原 **90 年代作曲家的审美偏好与采样制作流程**（他们当年经常使用 KORG M1 等外部采样器来设计鼓组），我们现在改用 **KORG M1 鼓组波形** 作为 PCM 音源。这些采样会经过 **22kHz / 8-bit 的降维处理**，以模拟当年硬件 DAC 的“Lo-Fi”特质。
 
-3. **测试要求（版权警告）**：因 Yamaha 版权原因，用户必须自备 OPNA 的 RHY 采样文件（命名为 2608_BD.WAV、2608_SD.WAV 等），并将其放置在 experimental/OPMMIDI-GAI/ 文件夹内（与实验版 player.py 同级），才能听到完整的节奏声部。
+**如何配置 KORG M1 鼓组：**
+1. **下载**：前往 [Musical Artifacts (Artifact #9388)]获取 PlaceboPerson1 制作的 **"KORG M1 Waveforms Soundfont"**。
+   *(注意：网页需要手动点击下载按钮。该音色包内包含了独立的鼓组 WAV 文件。)*
+2. **解压**：将这些 WAV 文件放入项目根目录的 `drum_samples/` 文件夹中。
+3. **处理（强烈推荐）**：运行 `python drum_samples/process_drums.py`。该脚本会自动进行 22kHz 降采样、4.5kHz 低通滤波和 8-bit 降比特，以还原复古质感。处理后的文件会保存在 `drum_samples/lofi/` 中。
+4. **渲染**：直接运行 `player.py`。引擎会**自动扫描**该文件夹，并将鼓文件映射到正确的 MIDI 音符上。
+
+> **⚠️ 版权声明**：本项目**不直接分发**任何 KORG 的版权采样。提供的下载链接仅用于学习与复古硬件研究目的。严禁将 KORG 采样用于商业用途。请用户自行通过合法途径获取。
 
 注：这是实验性分支，不影响主分支纯血单芯片 OPM 引擎的运行。
 
