@@ -8,6 +8,9 @@ import os
 import struct
 import sys
 import wave
+import math
+import glob
+from array import array
 
 from core import NullCore, OpmCore
 from driver import OpmSystem
@@ -17,21 +20,40 @@ from voice import load_opm_text
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_BANK = os.path.join(HERE, "NECOPN_GM.opm")
 
+# ==========================================
+# 🎛️ 软削波处理函数 (放在最外层，防止缩进报错)
+# ==========================================
+def apply_soft_clip(x):
+    THRESHOLD = 0.5  # 超过 50% 音量就开始温柔地“磨圆”
+    if x > THRESHOLD:
+        return THRESHOLD + (1.0 - THRESHOLD) * math.tanh((x - THRESHOLD) / (1.0 - THRESHOLD))
+    elif x < -THRESHOLD:
+        return -THRESHOLD - (1.0 - THRESHOLD) * math.tanh((-x - THRESHOLD) / (1.0 - THRESHOLD))
+    return x
 
-def render(system: OpmSystem, core, events, total_sec: float, sr: int, tail: float = 1.0, chunk_cap: int = 512) -> bytes:
+
+def render(system: OpmSystem, core, events, total_sec: float,
+           sr: int, tail: float = 1.0, chunk_cap: int = 512) -> bytes:
     total_frames = int((total_sec + tail) * sr)
     out = bytearray()
     frames = 0
     ei = 0
+
+    # ==========================================
+    # 🎛️ PCM 复古滤镜与混音参数区
+    # ==========================================
+    BITMASK = 0xFFF0  # 12-bit 降比特
+    LPF_ALPHA = 0.45  # 低通滤波
+    pcm_lpf_state = 0.0
     
-    # 基础音量权重
-    OPM_VOL = 1.0
-    PCM_VOL = 1.0
+    duck_env = 0.0
+    DUCK_AMOUNT = 0.75  # 极端侧链闪避：鼓一响，FM 瞬间让路 75%
+    DUCK_DECAY = 0.008
     
-    # 侧链闪避状态
-    duck_env = 0.0  # 当前闪避包络(0.0~1.0)
-    DUCK_AMOUNT = 0.5  # 鼓声最大能压掉 OPM 多少音量 (0.5 代表压低 50%)
-    DUCK_DECAY = 0.005 # 闪避恢复的速度 (每帧恢复多少)
+    # 压低基础音量，为软削波留出空间
+    OPM_VOL = 0.45
+    PCM_VOL = 0.55  
+    # ==========================================
 
     while frames < total_frames:
         now = frames / sr
@@ -42,54 +64,73 @@ def render(system: OpmSystem, core, events, total_sec: float, sr: int, tail: flo
             system.time = e.t
             if   e.kind == "on":   
                 system.note_on(e.ch, e.d1, e.d2)
-                # 【触发侧链】：如果是鼓（通道 9），瞬间拉满闪避包络
                 if e.ch == 9:
-                    duck_env = 1.0
+                    duck_env = 1.0 # 鼓声触发侧链闪避
             elif e.kind == "off":  system.note_off(e.ch, e.d1)
             elif e.kind == "cc":   system.control_change(e.ch, e.d1, e.d2)
             elif e.kind == "prog": system.program_change(e.ch, e.d1)
             elif e.kind == "bend": system.pitch_bend(e.ch, e.d1, e.d2)
             ei += 1
 
+        # 2. 计算当前块需要生成的帧数
         n = min(chunk_cap, total_frames - frames)
         
+        # 3. 获取 OPM 和 PCM 数据
         raw_opm = core.generate(n)
-        opm_array = struct.unpack("<%dh" % (2 * n), raw_opm)
-        pcm_array = system.pcm.generate(n) 
+        opm_array = array('h')
+        opm_array.frombytes(raw_opm)
         
-        scaled = []
+        pcm_array = system.pcm.generate(n)
+        
+        scaled = array('h')
+        
+        # 4. 逐个采样点混音
         for i in range(n):
-            # 获取原始音频
             l = opm_array[i * 2]
             r = opm_array[i * 2 + 1]
-            pcm_l = pcm_array[i]
-            
-            # 【核心魔法】：根据闪避包络，动态缩放 OPM 的音量
-            # 当 duck_env = 1.0 时，OPM 音量乘以 0.5 (压低一半)
-            # 当 duck_env = 0.0 时，OPM 音量乘以 1.0 (恢复原样)
+            pcm_val = pcm_array[i]
+
+            # 降比特处理 (处理 Python 负数坑)
+            crushed_pcm = pcm_val & BITMASK
+            if crushed_pcm > 32767:
+                crushed_pcm -= 65536
+
+            # 低通滤波
+            pcm_lpf_state = pcm_lpf_state + LPF_ALPHA * (crushed_pcm - pcm_lpf_state)
+            filtered_pcm = int(pcm_lpf_state)
+
+            # 计算当前的 OPM 音量（侧链闪避）
             current_opm_vol = OPM_VOL * (1.0 - (duck_env * DUCK_AMOUNT))
+
+            # 浮点混音 (除法转成 -1.0 ~ 1.0 的浮点数)
+            f_opm_l = (l / 32768.0) * current_opm_vol
+            f_opm_r = (r / 32768.0) * current_opm_vol
+            f_pcm   = (filtered_pcm / 32768.0) * PCM_VOL
             
-            final_l = int(l * current_opm_vol + pcm_l * PCM_VOL)
-            final_r = int(r * current_opm_vol + pcm_l * PCM_VOL)
+            mix_l = f_opm_l + f_pcm
+            mix_r = f_opm_r + f_pcm
             
-            # 防爆音限幅
-            final_l = max(-32767, min(32767, final_l))
-            final_r = max(-32767, min(32767, final_r))
+            # 软削波代替硬限幅
+            mix_l = apply_soft_clip(mix_l)
+            mix_r = apply_soft_clip(mix_r)
+            
+            # 转回 16-bit 整数
+            final_l = int(mix_l * 32767.0)
+            final_r = int(mix_r * 32767.0)
             
             scaled.append(final_l)
             scaled.append(final_r)
             
-            # 包络衰减（让被压低的 OPM 音量平滑恢复）
+            # 衰减包络
             if duck_env > 0:
                 duck_env -= DUCK_DECAY
                 if duck_env < 0: duck_env = 0.0
             
-        out += struct.pack("<%dh" % (2 * n), *scaled)
+        out += scaled.tobytes()
         system.advance_time(n / sr)
         frames += n
 
     return bytes(out)
-
 
 
 def write_wav(path: str, pcm: bytes, sr: int) -> None:
@@ -101,7 +142,7 @@ def write_wav(path: str, pcm: bytes, sr: int) -> None:
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="OPM MIDI 合成器")
+    ap = argparse.ArgumentParser(description="OPM MIDI 合成器 GAI版")
     ap.add_argument("midi", help="标准 MIDI 文件")
     ap.add_argument("-o", "--out", required=True, help="输出 WAV")
     ap.add_argument("--bank", default=DEFAULT_BANK, help=".opm 音色库路径")
@@ -110,6 +151,7 @@ def main(argv=None) -> int:
     ap.add_argument("--tail", type=float, default=1.0, help="尾部余响秒数")
     ap.add_argument("-r", "--raw", action="store_true", 
                     help="关闭翻译，保留原始 OPN 到 OPM 的物理偏移与畸变")
+
     args = ap.parse_args(argv)
 
     if not os.path.exists(args.bank):
@@ -134,43 +176,33 @@ def main(argv=None) -> int:
     system.translate_env = not args.raw
 
     # ==========================================
-    # 📥 加载 Korg M1 鼓组 (自动映射)
+    # 📥 自动加载 Korg M1 鼓组
     # ==========================================
-    import glob  # 如果文件顶部已经 import 了，这里可以删掉
-
-    # 优先读取 lofi 文件夹（如果用户跑过降采样脚本），否则读取原版
     drum_dir = os.path.join(HERE, "drum_samples", "lofi")
     if not os.path.exists(drum_dir):
         drum_dir = os.path.join(HERE, "drum_samples")
-
-    # 关键词映射表
+        
     KORG_KEYWORD_MAP = {
-        35: "Kick 1",      36: "Kick 2",      37: "Side Stick",
-        38: "Snare 1",     39: "Claps",       40: "Snare 2",
-        41: "Tom 1",       42: "Closed HH1",  43: "Tom 2",
-        44: "Open HH1",    45: "E.Tom",       46: "Closed HH2",
-        47: "E.Tom",       48: "Tom 1",       49: "Crash",
-        50: "Tom 2",       51: "Ride",        52: "Crash",
-        53: "Wind Bells",  54: "Tambourine",  56: "Cowbell",
-        70: "Shaker"
+        35: "Kick 1", 36: "Kick 2", 37: "Side Stick", 38: "Snare 1", 
+        39: "Claps", 40: "Snare 2", 41: "Tom 1", 42: "Closed HH1", 
+        43: "Tom 2", 44: "Open HH1", 45: "E.Tom", 46: "Closed HH2", 
+        47: "E.Tom", 48: "Tom 1", 49: "Crash", 50: "Tom 2", 
+        51: "Ride", 52: "Crash", 53: "Wind Bells", 54: "Tambourine", 
+        56: "Cowbell", 70: "Shaker"
     }
-
     loaded_count = 0
     if os.path.exists(drum_dir):
         for wav_path in glob.glob(os.path.join(drum_dir, "*.wav")):
             filename = os.path.basename(wav_path)
             for note, keyword in KORG_KEYWORD_MAP.items():
                 if keyword in filename:
-                    # 核心逻辑：把 MIDI 音符数字(如"35")作为 Key，加载进 PcmCore
                     system.pcm.load_sample(str(note), wav_path)
                     loaded_count += 1
                     break
-                    
     if loaded_count > 0:
-        print(f"🥁 成功加载并映射了 {loaded_count} 个 Korg M1 鼓采样！")
+        print(f"🥁 成功加载并映射了 {loaded_count} 个 Korg 鼓采样！")
     else:
         print("⚠️ 未找到 Korg 鼓采样，将回退到 FM 鼓组。")
-    # ==========================================
 
     sr = core.sample_rate()
     pcm = render(system, core, events, total_sec, sr, tail=args.tail)
