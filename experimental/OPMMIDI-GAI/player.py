@@ -182,13 +182,54 @@ def main(argv=None) -> int:
     if not os.path.exists(drum_dir):
         drum_dir = os.path.join(HERE, "drum_samples")
         
+    # 完整的 Korg M1 鼓组映射 (覆盖 GM 标准鼓 35~81)
     KORG_KEYWORD_MAP = {
-        35: "Kick 1", 36: "Kick 2", 37: "Side Stick", 38: "Snare 1", 
-        39: "Claps", 40: "Snare 2", 41: "Tom 1", 42: "Closed HH1", 
-        43: "Tom 2", 44: "Open HH1", 45: "E.Tom", 46: "Closed HH2", 
-        47: "E.Tom", 48: "Tom 1", 49: "Crash", 50: "Tom 2", 
-        51: "Ride", 52: "Crash", 53: "Wind Bells", 54: "Tambourine", 
-        56: "Cowbell", 70: "Shaker"
+        # --- 底鼓 ---
+        35: "Kick 1",
+        36: "Kick 2",      # 如果曲子用到 36，用 Kick 2 代替
+        # --- 军鼓 / 拍手 ---
+        38: "Snare 1",
+        40: "Snare 2",
+        39: "Claps",       # 拍手
+        # --- 踩镲 ---
+        42: "Closed HH",
+        44: "Closed HH 2", # 踏板踩镲（如果没有专门的 Pedal，用闭镲代替）
+        46: "Open HH",
+        # --- 桶鼓 (Tom) ---
+        41: "Tom 2",       # 落地桶鼓
+        43: "E.Tom",       # 电子桶鼓
+        45: "Tom 1",       # 中桶鼓
+        47: "E.Tom",       # 中低桶鼓 (可用电鼓代替)
+        48: "Tom 1",       # 中高桶鼓
+        50: "Tom 2",       # 高桶鼓
+        # --- 镲片 ---
+        49: "Crash",       # 强音镲 1
+        52: "Crash",       # 中国镲（用普通强音镲代替）
+        55: "Crash",       # 水镲（用普通强音镲代替）
+        57: "Crash",       # 强音镲 2
+        51: "Ride",        # 叮叮镲 1
+        59: "Ride",        # 叮叮镲 2
+        53: "Bell Ring",   # 镲帽（Ride Bell）
+        # --- 拉丁/民族打击乐 ---
+        60: "Conga 1",     # 高音康加鼓
+        61: "Conga 2",     # 低音康加鼓
+        62: "Conga 1",     # 闷音康加
+        63: "Conga 1",     # 开音康加
+        64: "Conga 2",     # 低音康加
+        65: "Timbales 1",  # 高音天巴鼓
+        66: "Timbales 2",  # 低音天巴鼓
+        # --- 杂项打击乐 ---
+        54: "Tambourine",  # 铃鼓
+        56: "Cowbell",     # 牛铃
+        58: "Vibe Hit",    # 颤音器（Vibraslap）
+        69: "Shaker",      # 卡巴萨（用沙锤代替）
+        70: "Shaker",      # 沙锤
+        75: "Block",       # 击木（Claves）
+        76: "Block",       # 高音木鱼
+        77: "Block",       # 低音木鱼
+        80: "Tubular",     # 闷音三角铁（用管钟代替）
+        81: "Tubular",     # 开音三角铁
+        82: "Whip",        # 鞭击（如果曲子用到）
     }
     loaded_count = 0
     if os.path.exists(drum_dir):

@@ -39,7 +39,7 @@ def midi_to_opm_pitch(pitch, clock=3579545, base_freq=440.0):
     kc_low = opm_notes[key_index]
     
     # 5. 计算微调 (KF)
-    kf_val = int(round(remainder % 64)) & 0x3F
+    kf_val = min(63, int(round(remainder % 64)))
     
     kc_val = (octave << 4) | kc_low
     

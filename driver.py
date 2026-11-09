@@ -572,6 +572,18 @@ class OpmSystem:
         self.vgm_log = []      # 新增：记录 VGM 日志
         self.trace_vgm = False # 新增：录制开关
         self._init_hardware()
+        self.sustain = [False] * 16
+        self.ch_vol = [127] * 16
+        self.ch_expr = [127] * 16
+        self.ch_brightness = [64] * 16
+        
+        self.ch_bend_range = [2] * 16  
+        self.rpn_msb = [0] * 16        # 默认 RPN 0
+        self.rpn_lsb = [0] * 16        # 默认 RPN 0
+        self.ch_cc1 = [0] * 16         # 新增：记录通道的 CC1 调制轮
+        
+        self.serial = 0
+        self.time = 0.0
 
     def _w(self, reg: int, val: int) -> None:
         self.core.write(reg, val)
@@ -675,8 +687,27 @@ class OpmSystem:
             self._w(0x30 + ch, kf << 2)
 
     def _pitch_with_bend(self, midi_ch: int, note: int) -> float:
+        # 1. 计算当前推子偏移比例（-1.0 到 1.0）
         bend = (self.bend14[midi_ch & 0x0F] - 8192) / 8192.0
-        return note + bend * self.bend_range
+        
+        # 2. 获取该通道通过 RPN 设定的弯音范围（默认 2）
+        rng = self.ch_bend_range[midi_ch & 0x0F]
+        
+        # 3. 计算目标音高
+        target_pitch = note + bend * rng
+        
+        # 4. 【核心防爆音机制】：限制单次弯音的极限跨度
+        # 即使 MIDI 把 RPN 设成了 64，为了防止 Nuked OPM 物理崩溃，
+        # 我们强行把它限制在 ±12 个半音（即一个八度）以内。
+        MAX_BEND_SEMITONES = max(12.0, float(self.ch_bend_range[midi_ch]))
+        
+        if target_pitch > note + MAX_BEND_SEMITONES:
+            target_pitch = note + MAX_BEND_SEMITONES
+        elif target_pitch < note - MAX_BEND_SEMITONES:
+            target_pitch = note - MAX_BEND_SEMITONES
+            
+        # 绝对音域钳位：Nuked OPM 物理极限是 MIDI 12 ~ 108，防止越界产生极值 clip 怪音
+        return max(12.0, min(108.0, target_pitch))
 
     def _find(self, midi_ch: int, note: int) -> int:
         for i, s in enumerate(self.slots):
@@ -845,7 +876,11 @@ class OpmSystem:
 
         self._update_tl(ch, v, velocity)
         self._set_pitch(ch, self._pitch_with_bend(midi_ch, note))
-
+        
+        # 【新增】同步当前通道的 CC1 调制深度
+        self._w(0x08, ch)
+        self._w(0x19, 0x80 | (self.ch_cc1[midi_ch] & 0x7F))
+        
         self._w(0x08, 0x78 | ch)
 
     def note_off(self, midi_ch: int, note: int) -> None:
@@ -872,7 +907,8 @@ class OpmSystem:
             return
         self.bend14[midi_ch] = ((msb & 0x7F) << 7) | (lsb & 0x7F)
         for i, s in enumerate(self.slots):
-            if s.active and s.midi_ch == midi_ch and i != self.drum_ch:
+            # 改成判断 s.midi_ch != 9，只要不是鼓通道，无论在哪个 slot 都能弯音
+            if s.active and s.midi_ch == midi_ch and s.midi_ch != 9:
                 self._set_pitch(i, self._pitch_with_bend(midi_ch, s.note))
 
     def control_change(self, midi_ch: int, cc: int, value: int) -> None:
@@ -889,6 +925,33 @@ class OpmSystem:
         elif cc == 0x4A:
             self.ch_brightness[midi_ch] = min(64, value)
             self._refresh_channel_tl(midi_ch)
+            
+        # ========== 【新增】CC1 调制轮 ==========
+        elif cc == 0x01:
+            self.ch_cc1[midi_ch] = value  # 记录状态
+            for i, s in enumerate(self.slots):
+                if s.active and s.midi_ch == midi_ch:
+                    # 获取当前音色原本的 PMD 深度，做叠加（保护音色自带的轻微颤音）
+                    v = self.voices[s.program % max(1, len(self.voices))]
+                    base_pmd = v.lfo[2] if len(v.lfo) > 2 else 0
+                    
+                    # 这里采用 GM 标准的直接覆盖：
+                    new_pmd = value 
+                    
+                    self._w(0x08, i) # 选中物理通道
+                    self._w(0x19, 0x80 | (new_pmd & 0x7F)) # Bit 7 写 1 表示写 PMD
+        # =======================================
+        # ========== 【新增】RPN 状态机解析 ==========
+        elif cc == 0x65: # RPN MSB
+            self.rpn_msb[midi_ch] = value
+        elif cc == 0x64: # RPN LSB
+            self.rpn_lsb[midi_ch] = value
+        elif cc == 0x06: # Data Entry MSB
+            # 如果当前 RPN 是 0,0（即 RPN 0：弯音范围）
+            if self.rpn_msb[midi_ch] == 0 and self.rpn_lsb[midi_ch] == 0:
+                self.ch_bend_range[midi_ch] = value
+        # ==========================================
+
         elif cc == 0x40:
             if value >= 64:
                 self.sustain[midi_ch] = True
@@ -910,6 +973,11 @@ class OpmSystem:
             self.ch_expr[midi_ch] = 127
             self.ch_brightness[midi_ch] = 64
             self.sustain[midi_ch] = False
+            # 【新增复位】
+            self.ch_bend_range[midi_ch] = 2
+            self.rpn_msb[midi_ch] = 0
+            self.rpn_lsb[midi_ch] = 0
+            # =============
             for i, s in enumerate(self.slots):
                 if s.midi_ch == midi_ch and s.pending_off:
                     self._real_note_off(i)
