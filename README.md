@@ -129,14 +129,14 @@ The OPP is an early enhanced version of the OPM (famously used in the Yamaha FB-
 #### 🎛️ Mode 2: OPZ (YM2414) — The Raw, Dry Arcade Beast
 The OPZ is a highly stripped-down version of the OPM, heavily used in late 80s arcade boards (like Data East systems). It physically removed the LFO generator and CSM mode, resulting in an extremely raw, dry, and unpolished sound.
 
+*   **Implementation**: We added precise "register interception" in the Python execution layer's `_w` function. In OPZ mode, all writes to the LFO (`0x18`, `0x19`, `0x1a`, `0x1b`) and CSM (`0x14`) registers are silently dropped.
+*   **Acoustic Character**: All CC1 (Modulation Wheel) vibrato becomes entirely non-functional. Long notes have zero vibrato or modulation. This "brutalist" aesthetic perfectly replicates the cold, mechanical, and hardcore vibe of early arcade hardware.
+
 ### 🎹 Experimental Voice Bank: FB01_GM.opm (The Pseudo-GM with Native OPM Lineage)
 
 Alongside the primary `NECOPN_GM.opm`, this project includes an experimental voice bank driven by pure geek spirit: **`FB01_GM.opm`**.
 
 *   **Not a Standard GM**: It must be stated upfront that this is **not** a standard General MIDI bank. It is a roughly organized set of 128 pseudo-GM slots, compiled via a Python script that analyzed name keywords and physical FM envelope characteristics (AR/DR/SL). The source material comes from classic Yamaha **FB-01 (YM2164 / OPP)** factory SysEx presets, as well as patches directly extracted from OPM-based video game music (e.g., X68000).
-
-*   **Implementation**: We added precise "register interception" in the Python execution layer's `_w` function. In OPZ mode, all writes to the LFO (`0x18`, `0x19`, `0x1a`, `0x1b`) and CSM (`0x14`) registers are silently dropped.
-*   **Acoustic Character**: All CC1 (Modulation Wheel) vibrato becomes entirely non-functional. Long notes have zero vibrato or modulation. This "brutalist" aesthetic perfectly replicates the cold, mechanical, and hardcore vibe of early arcade hardware.
 
 #### 🚀 How to Use:
 Simply append the `--chip` argument in the CLI to experience them seamlessly:
