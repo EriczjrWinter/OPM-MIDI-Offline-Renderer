@@ -118,6 +118,27 @@ Located in experimental/OPMMIDI-GAI2(SSG)/, this is another Proof of Concept (Po
 
 4. **VGM Export**: Exports true dual-chip VGM files (YM2151 + YM2149), preserving the SSG drum logs using standard 0xA0 register writes and correct chip clock headers.
 
+### 🧪 Experimental: OPMMIDI-GAI3 (Multi-OPM Expansion: OPP & OPZ)
+Located in `experimental/OPMMIDI-GAI3(OPZ&OPP)/`. This is a Proof of Concept (PoC) exploring the extended members of the Yamaha FM family. Leveraging the highly modular design of the Nuked OPM core, we implemented a minimalist "chip mode" routing logic at the Python execution layer.
+
+#### 🎛️ Mode 1: OPP (YM2164 / FB-01) — The Smooth Glide
+The OPP is an early enhanced version of the OPM (famously used in the Yamaha FB-01 MIDI module). Aside from the test register offset (shifted from `0x01` to `0x09`), its most significant physical feature is the **Hardware TL Ramp (Volume Register Glide)**.
+*   **Implementation**: By passing `flags=1` (`opm_flags_ym2164`) to the underlying C core, we activate the built-in OPP hardware behavior in Nuked OPM.
+*   **Acoustic Benefit**: On standard OPM, abrupt MIDI CC7 (Channel Volume) or CC11 (Expression) changes can cause audible "zipper noise" or stepping. In OPP mode, the hardware smoothly interpolates these steps. This is perfect for tracks with sweeping string pads or gradual fades.
+
+#### 🎛️ Mode 2: OPZ (YM2414) — The Raw, Dry Arcade Beast
+The OPZ is a highly stripped-down version of the OPM, heavily used in late 80s arcade boards (like Data East systems). It physically removed the LFO generator and CSM mode, resulting in an extremely raw, dry, and unpolished sound.
+*   **Implementation**: We added precise "register interception" in the Python execution layer's `_w` function. In OPZ mode, all writes to the LFO (`0x18`, `0x19`, `0x1a`, `0x1b`) and CSM (`0x14`) registers are silently dropped.
+*   **Acoustic Character**: All CC1 (Modulation Wheel) vibrato becomes entirely non-functional. Long notes have zero vibrato or modulation. This "brutalist" aesthetic perfectly replicates the cold, mechanical, and hardcore vibe of early arcade hardware.
+
+#### 🚀 How to Use:
+Simply append the `--chip` argument in the CLI to experience them seamlessly:
+# Experience OPP's silky-smooth volume glides
+python player.py "music.mid" --chip opp -o "opp_out.wav"
+
+# Experience OPZ's minimalist, dry, and hardcore vibe (No Vibrato)
+python player.py "music.mid" --chip opz -o "opz_out.wav
+
 ###
 - **Hardware Quirks & Uncontrollable Artifacts:** Because this project uses Nuked OPM, it simulates the raw digital output of the YM2151 without modern DSP smoothing or built-in LPF. Dense MIDI events or high-feedback patches may produce harsh "zipper noise" or high-frequency aliasing. This is a genuine characteristic of the hardware, not a bug.
 - **Swapping the Core:** If you prefer a smoother, VST-like sound, the modular design allows you to replace the core. Refer to the encapsulation logic in `core.py` and implement the `ChipCore` abstract class to wrap another emulator (e.g., `fmgen`), then pass it to `driver.py`.

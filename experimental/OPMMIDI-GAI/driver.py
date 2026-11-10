@@ -946,19 +946,10 @@ class OpmSystem:
         # ========== 【新增】CC1 调制轮（硬件 PMD 深度） ==========
         elif cc == 0x01:
             self.ch_cc1[midi_ch] = value  # 记录状态
-            for i, s in enumerate(self.slots):
-                if s.active and s.midi_ch == midi_ch:
-                    # 获取当前音色原本的 PMD 深度，做叠加（保护音色自带的轻微颤音）
-                    v = self.voices[s.program % max(1, len(self.voices))]
-                    base_pmd = v.lfo[2] if len(v.lfo) > 2 else 0
-                    
-                    # 如果怕爆音，可以取最大值：new_pmd = max(base_pmd, value)
-                    # 或者是直接叠加：new_pmd = min(127, base_pmd + value)
-                    # 这里采用 GM 标准的直接覆盖：
-                    new_pmd = value 
-                    
-                    self._w(0x08, i) # 选中物理通道
-                    self._w(0x19, 0x80 | (new_pmd & 0x7F)) # Bit 7 写 1 表示写 PMD
+            
+            # 【核心修复】：OPM 的 0x19 是全局 LFO 深度，无需选中通道
+            # 直接全局覆盖写入即可，千万不能写 0x08 (KON) 触发 Key Off！
+            self._w(0x19, 0x80 | (value & 0x7F))
         # ==========================================================
 
         elif cc == 0x65: # RPN MSB
